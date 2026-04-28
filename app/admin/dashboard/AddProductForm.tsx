@@ -1,11 +1,17 @@
 'use client';
 
-import { useActionState, useRef, useEffect } from 'react';
+import { useActionState, useRef, useEffect, useState } from 'react';
 import { addProductAction, updateProductAction } from '../actions';
 
 type Category = {
   id: string;
   name: string;
+};
+
+type Variant = {
+  year: number;
+  price: number;
+  stock: number;
 };
 
 type Product = {
@@ -20,6 +26,7 @@ type Product = {
   badgeBg?: string;
   badgeColor?: string;
   image: string;
+  variants?: Variant[];
 };
 
 export default function AddProductForm({ 
@@ -37,15 +44,37 @@ export default function AddProductForm({
   const [state, formAction, isPending] = useActionState(action, null as any);
   const formRef = useRef<HTMLFormElement>(null);
 
+  const [variants, setVariants] = useState<Variant[]>(product?.variants || []);
+
   useEffect(() => {
     if (state?.success && formRef.current && !isEditing) {
       formRef.current.reset();
+      setVariants([]);
     }
   }, [state, isEditing]);
+
+  const addVariant = () => {
+    setVariants(prev => [...prev, { year: 1, price: 0, stock: 0 }]);
+  };
+
+  const removeVariant = (index: number) => {
+    setVariants(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateVariant = (index: number, field: keyof Variant, value: string) => {
+    const numVal = value === '' ? 0 : Number(value);
+    setVariants(prev => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: isNaN(numVal) ? 0 : numVal };
+      return next;
+    });
+  };
 
   return (
     <form action={formAction} ref={formRef} className="space-y-6">
       {isEditing && <input type="hidden" name="id" value={product.id} />}
+      <input type="hidden" name="variantsJson" value={JSON.stringify(variants)} />
+
       <div className="grid md:grid-cols-2 gap-6">
         <div>
           <label className="block text-sm font-medium text-[#4a4642] mb-1.5">Product Name</label>
@@ -87,19 +116,19 @@ export default function AddProductForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-[#4a4642] mb-1.5">Age Range</label>
+          <label className="block text-sm font-medium text-[#4a4642] mb-1.5">Age Range Label</label>
           <input
             type="text"
             name="ageRange"
             defaultValue={product?.ageRange}
             required
             className="w-full px-4 py-3 rounded-xl border border-[#A8C3A5]/30 focus:outline-none focus:border-[#2E2A27] transition"
-            placeholder="e.g., 2-4Y"
+            placeholder="e.g., 2-10Y"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-[#4a4642] mb-1.5">Base Price (₹)</label>
+          <label className="block text-sm font-medium text-[#4a4642] mb-1.5">Default Base Price (₹)</label>
           <input
             type="number"
             name="basePrice"
@@ -121,6 +150,74 @@ export default function AddProductForm({
             placeholder="https://images.unsplash.com/..."
           />
         </div>
+      </div>
+
+      <div className="pt-4 border-t border-[#A8C3A5]/10">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-sm font-semibold text-[#4a4642]">Stock & Price per Year</h3>
+          <button 
+            type="button" 
+            onClick={addVariant}
+            className="text-xs px-3 py-1.5 rounded-lg bg-[#A8C3A5]/20 text-[#5A7A56] font-medium hover:bg-[#A8C3A5]/30 transition"
+          >
+            + Add Year Variant
+          </button>
+        </div>
+        
+        {variants.length === 0 ? (
+          <p className="text-xs text-[#9a938c] italic mb-4">No variants added yet. These will appear in the frontend dropdown.</p>
+        ) : (
+          <div className="space-y-3 mb-6">
+            {variants.map((variant, index) => (
+              <div key={index} className="flex gap-3 items-end">
+                <div className="flex-1">
+                  <label className="block text-[10px] font-medium text-[#7a766f] mb-1 uppercase">Year</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={14}
+                    value={String(variant.year)}
+                    onChange={(e) => updateVariant(index, 'year', e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-[#A8C3A5]/30 text-sm focus:outline-none"
+                    placeholder="e.g. 2"
+                    required
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-[10px] font-medium text-[#7a766f] mb-1 uppercase">Price (₹)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={String(variant.price)}
+                    onChange={(e) => updateVariant(index, 'price', e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-[#A8C3A5]/30 text-sm focus:outline-none"
+                    placeholder="e.g. 699"
+                    required
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-[10px] font-medium text-[#7a766f] mb-1 uppercase">Stock</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={String(variant.stock)}
+                    onChange={(e) => updateVariant(index, 'stock', e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-[#A8C3A5]/30 text-sm focus:outline-none"
+                    placeholder="0"
+                    required
+                  />
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => removeVariant(index)}
+                  className="p-2 text-red-400 hover:text-red-600 transition"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div>

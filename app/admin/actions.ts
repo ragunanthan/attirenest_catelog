@@ -44,6 +44,8 @@ export async function addProductAction(prevState: { error?: string; success?: st
   const badge = formData.get('badge') as string;
   const badgeBg = formData.get('badgeBg') as string;
   const badgeColor = formData.get('badgeColor') as string;
+  const variantsJson = formData.get('variantsJson') as string;
+  const variants = JSON.parse(variantsJson || '[]');
 
   try {
     await dbConnect();
@@ -64,6 +66,7 @@ export async function addProductAction(prevState: { error?: string; success?: st
       badge: badge || undefined,
       badgeBg: badgeBg || undefined,
       badgeColor: badgeColor || undefined,
+      variants,
     });
 
     await newProduct.save();
@@ -91,6 +94,8 @@ export async function updateProductAction(prevState: { error?: string; success?:
   const badge = formData.get('badge') as string;
   const badgeBg = formData.get('badgeBg') as string;
   const badgeColor = formData.get('badgeColor') as string;
+  const variantsJson = formData.get('variantsJson') as string;
+  const variants = JSON.parse(variantsJson || '[]');
 
   try {
     await dbConnect();
@@ -105,6 +110,7 @@ export async function updateProductAction(prevState: { error?: string; success?:
       badge: badge || undefined,
       badgeBg: badgeBg || undefined,
       badgeColor: badgeColor || undefined,
+      variants,
     });
     revalidatePath('/');
     return { success: 'Product updated successfully!' };

@@ -1,5 +1,11 @@
 import mongoose from 'mongoose';
 
+export interface IVariant {
+  year: number;
+  price: number;
+  stock: number;
+}
+
 export interface IProduct extends mongoose.Document {
   id: number;
   categoryId: string;
@@ -12,7 +18,14 @@ export interface IProduct extends mongoose.Document {
   badgeBg?: string;
   badgeColor?: string;
   image: string;
+  variants: IVariant[];
 }
+
+const VariantSchema = new mongoose.Schema<IVariant>({
+  year: { type: Number, required: true },
+  price: { type: Number, required: true },
+  stock: { type: Number, required: true, default: 0 },
+});
 
 const ProductSchema = new mongoose.Schema<IProduct>({
   id: { type: Number, required: true, unique: true },
@@ -26,6 +39,7 @@ const ProductSchema = new mongoose.Schema<IProduct>({
   badgeBg: { type: String, required: false },
   badgeColor: { type: String, required: false },
   image: { type: String, required: true },
+  variants: [VariantSchema],
 });
 
 export default mongoose.models.Product || mongoose.model<IProduct>('Product', ProductSchema);

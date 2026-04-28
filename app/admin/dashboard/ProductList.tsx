@@ -4,6 +4,12 @@ import { useState } from 'react';
 import { deleteProductAction } from '../actions';
 import AddProductForm from './AddProductForm';
 
+type Variant = {
+  year: number;
+  price: number;
+  stock: number;
+};
+
 type Product = {
   id: number;
   categoryId: string;
@@ -16,6 +22,7 @@ type Product = {
   badgeBg?: string;
   badgeColor?: string;
   image: string;
+  variants?: Variant[];
 };
 
 type Category = {

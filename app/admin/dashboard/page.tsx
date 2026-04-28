@@ -40,6 +40,11 @@ export default async function AdminDashboard() {
     badgeBg: prod.badgeBg,
     badgeColor: prod.badgeColor,
     image: prod.image,
+    variants: (prod.variants || []).map((v: { year: number; price: number; stock: number }) => ({
+      year: v.year,
+      price: v.price,
+      stock: v.stock,
+    })),
   }));
 
   return (
