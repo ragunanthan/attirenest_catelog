@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from 'react';
-import { CatalogueProps, Product } from './catalogue/types';
+import { CatalogueProps, Product, ShippingInfo } from './catalogue/types';
 import { useCart } from './catalogue/hooks/useCart';
 import { useScrollSpy } from './catalogue/hooks/useScrollSpy';
 import { useRazorpay } from './catalogue/hooks/useRazorpay';
@@ -9,7 +9,7 @@ import { useProductState } from './catalogue/hooks/useProductState';
 import { CatalogueHeader } from './catalogue/CatalogueHeader';
 import { CatalogueNav } from './catalogue/CatalogueNav';
 import { ProductCard } from './catalogue/ProductCard';
-import { CartDrawer } from './catalogue/CartDrawer';
+import { CartModal } from './catalogue/CartModal';
 import { CatalogueFooter } from './catalogue/CatalogueFooter';
 
 export default function Catalogue({ initialCategories, initialProducts }: CatalogueProps) {
@@ -65,6 +65,10 @@ export default function Catalogue({ initialCategories, initialProducts }: Catalo
     setIsCartOpen(true);
     setProductAdded(product.id);
   }, [selections, prices, addToCart, setProductAdded]);
+
+  const onPay = useCallback((shippingInfo: ShippingInfo) => {
+    handlePayment(shippingInfo);
+  }, [handlePayment]);
 
   return (
     <div className="min-h-screen">
@@ -133,7 +137,7 @@ export default function Catalogue({ initialCategories, initialProducts }: Catalo
 
       <CatalogueFooter />
 
-      <CartDrawer 
+      <CartModal 
         isOpen={isCartOpen}
         cart={cart}
         totalPrice={totalPrice}
@@ -142,7 +146,7 @@ export default function Catalogue({ initialCategories, initialProducts }: Catalo
         onClose={() => setIsCartOpen(false)}
         onChangeQty={changeQty}
         onRemove={removeFromCart}
-        onPay={handlePayment}
+        onPay={onPay}
       />
     </div>
   );

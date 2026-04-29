@@ -56,6 +56,7 @@ export default async function AdminDashboard() {
           </div>
           <div className="flex gap-3">
             <Link href="/" className="px-5 py-2.5 rounded-full border border-[#A8C3A5]/30 bg-white text-sm font-medium hover:bg-[#A8C3A5]/10 transition">View Site</Link>
+            <Link href="/admin/orders" className="px-5 py-2.5 rounded-full border border-[#A8C3A5]/30 bg-white text-sm font-medium hover:bg-[#A8C3A5]/10 transition">View Orders</Link>
             <form action={logoutAction}>
               <button type="submit" className="px-5 py-2.5 rounded-full bg-[#2E2A27] text-white text-sm font-medium hover:opacity-90 transition">Logout</button>
             </form>

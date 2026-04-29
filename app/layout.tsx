@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
-import { Fraunces, Outfit } from "next/font/google";
+import { Fraunces, Outfit, Geist } from "next/font/google";
 import "./globals.css";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const fraunces = Fraunces({
   variable: "--font-fraunces",
@@ -26,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en-IN" className={`${fraunces.variable} ${outfit.variable} h-full antialiased`}>
+    <html lang="en-IN" className={cn("h-full", "antialiased", fraunces.variable, outfit.variable, "font-sans", geist.variable)}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

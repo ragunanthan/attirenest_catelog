@@ -1,5 +1,7 @@
 import Razorpay from 'razorpay';
 import { NextRequest, NextResponse } from 'next/server';
+import dbConnect from '@/lib/mongodb';
+import Order from '@/lib/models/Order';
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZOR_PAY_KEY_ID!,
@@ -8,16 +10,34 @@ const razorpay = new Razorpay({
 
 export async function POST(req: NextRequest) {
   try {
-    const { amount } = await req.json();
+    const { amount, items, shippingAddress } = await req.json();
 
     if (!amount || amount <= 0) {
       return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
     }
 
+    await dbConnect();
+
     const order = await razorpay.orders.create({
       amount: Math.round(amount * 100), // Razorpay expects paise
       currency: 'INR',
       receipt: `rcpt_${Date.now()}`,
+    });
+
+    // Save pending order to database
+    await Order.create({
+      orderId: order.id,
+      amount: amount,
+      currency: 'INR',
+      status: 'pending',
+      shippingAddress: shippingAddress || {},
+      items: items.map((item: { id: number; name: string; year: number; price: number; qty: number }) => ({
+        productId: item.id,
+        name: item.name,
+        year: item.year,
+        price: item.price,
+        qty: item.qty,
+      })),
     });
 
     return NextResponse.json({
@@ -30,3 +50,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to create payment order' }, { status: 500 });
   }
 }
+

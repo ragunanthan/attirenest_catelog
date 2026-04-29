@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { CartItem } from '../types';
+import { CartItem, ShippingInfo } from '../types';
 
 declare global {
   interface Window {
@@ -30,7 +30,7 @@ export function useRazorpay(
     return () => { document.body.removeChild(script); };
   }, []);
 
-  const handlePayment = useCallback(async () => {
+  const handlePayment = useCallback(async (shippingInfo: ShippingInfo) => {
     if (cart.length === 0) return;
     if (!window.Razorpay) {
       alert('Payment gateway not loaded. Please refresh the page.');
@@ -42,7 +42,11 @@ export function useRazorpay(
       const res = await fetch('/api/razorpay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: totalPrice }),
+        body: JSON.stringify({
+          amount: totalPrice,
+          items: cart,
+          shippingAddress: shippingInfo,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Failed to create order');
@@ -54,10 +58,37 @@ export function useRazorpay(
         name: 'Attirenest',
         description: `Order for ${totalCount} item(s)`,
         order_id: data.orderId,
-        handler: () => {
-          onSuccess();
-          setPaymentSuccess(true);
-          setTimeout(() => setPaymentSuccess(false), 5000);
+        prefill: {
+          name: shippingInfo.fullName,
+          contact: shippingInfo.phone,
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        handler: async (response: any) => {
+          try {
+            const verifyRes = await fetch('/api/razorpay/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            });
+
+            if (verifyRes.ok) {
+              onSuccess();
+              setPaymentSuccess(true);
+              setTimeout(() => setPaymentSuccess(false), 5000);
+            } else {
+              const verifyData = await verifyRes.json();
+              alert(verifyData.error || 'Payment verification failed');
+            }
+          } catch (err) {
+            console.error('Verification error:', err);
+            alert('Error verifying payment');
+          } finally {
+            setIsLoading(false);
+          }
         },
         theme: { color: '#5A7A56' },
         modal: { ondismiss: () => setIsLoading(false) },
