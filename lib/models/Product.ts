@@ -13,7 +13,6 @@ export interface IProduct extends mongoose.Document {
   features: string;
   description: string;
   basePrice: number;
-  ageRange: string;
   badge?: string;
   badgeBg?: string;
   badgeColor?: string;
@@ -34,7 +33,6 @@ const ProductSchema = new mongoose.Schema<IProduct>({
   features: { type: String, required: true },
   description: { type: String, required: true },
   basePrice: { type: Number, required: true },
-  ageRange: { type: String, required: true },
   badge: { type: String, required: false },
   badgeBg: { type: String, required: false },
   badgeColor: { type: String, required: false },
@@ -42,4 +40,9 @@ const ProductSchema = new mongoose.Schema<IProduct>({
   variants: [VariantSchema],
 });
 
-export default mongoose.models.Product || mongoose.model<IProduct>('Product', ProductSchema);
+// Force delete the model from cache to ensure the new schema is picked up
+if (mongoose.models.Product) {
+  delete (mongoose.models as any).Product;
+}
+
+export default mongoose.model<IProduct>('Product', ProductSchema);

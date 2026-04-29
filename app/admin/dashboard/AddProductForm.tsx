@@ -21,7 +21,6 @@ type Product = {
   features: string;
   description: string;
   basePrice: number;
-  ageRange: string;
   badge?: string;
   badgeBg?: string;
   badgeColor?: string;
@@ -115,17 +114,6 @@ export default function AddProductForm({
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-[#4a4642] mb-1.5">Age Range Label</label>
-          <input
-            type="text"
-            name="ageRange"
-            defaultValue={product?.ageRange}
-            required
-            className="w-full px-4 py-3 rounded-xl border border-[#A8C3A5]/30 focus:outline-none focus:border-[#2E2A27] transition"
-            placeholder="e.g., 2-10Y"
-          />
-        </div>
 
         <div>
           <label className="block text-sm font-medium text-[#4a4642] mb-1.5">Default Base Price (₹)</label>

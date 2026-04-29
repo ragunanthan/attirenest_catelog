@@ -18,7 +18,6 @@ export type Product = {
   features: string;
   description: string;
   basePrice: number;
-  ageRange: string;
   badge?: string;
   badgeBg?: string;
   badgeColor?: string;

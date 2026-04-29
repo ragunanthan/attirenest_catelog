@@ -35,7 +35,6 @@ export default async function AdminDashboard() {
     features: prod.features,
     description: prod.description,
     basePrice: prod.basePrice,
-    ageRange: prod.ageRange,
     badge: prod.badge,
     badgeBg: prod.badgeBg,
     badgeColor: prod.badgeColor,
