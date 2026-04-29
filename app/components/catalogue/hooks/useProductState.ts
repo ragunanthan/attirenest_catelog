@@ -10,9 +10,11 @@ export function useProductState(initialProducts: Product[]) {
   });
   const [animatingPrices, setAnimatingPrices] = useState<Record<number, boolean>>({});
   const [addedFlags, setAddedFlags] = useState<Record<number, boolean>>({});
+  const [errorFlags, setErrorFlags] = useState<Record<number, boolean>>({});
 
   const handleYearChange = useCallback((product: Product, yearStr: string) => {
     const year = parseInt(yearStr);
+    setErrorFlags(prev => ({ ...prev, [product.id]: false }));
     if (!year) {
       setSelections(prev => ({ ...prev, [product.id]: 0 }));
       setPrices(prev => ({ ...prev, [product.id]: product.basePrice }));
@@ -30,12 +32,19 @@ export function useProductState(initialProducts: Product[]) {
     setTimeout(() => setAddedFlags(prev => ({ ...prev, [productId]: false })), 1200);
   }, []);
 
+  const triggerError = useCallback((productId: number) => {
+    setErrorFlags(prev => ({ ...prev, [productId]: true }));
+    setTimeout(() => setErrorFlags(prev => ({ ...prev, [productId]: false })), 1500);
+  }, []);
+
   return {
     selections,
     prices,
     animatingPrices,
     addedFlags,
+    errorFlags,
     handleYearChange,
-    setProductAdded
+    setProductAdded,
+    triggerError
   };
 }

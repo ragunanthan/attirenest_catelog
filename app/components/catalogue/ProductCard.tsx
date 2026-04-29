@@ -7,6 +7,7 @@ type Props = {
   displayPrice: number;
   isPriceAnimating: boolean;
   isAdded: boolean;
+  hasError: boolean;
   onYearChange: (product: Product, yearStr: string) => void;
   onAddToCart: (product: Product) => void;
 };
@@ -17,12 +18,13 @@ export function ProductCard({
   displayPrice,
   isPriceAnimating,
   isAdded,
+  hasError,
   onYearChange,
   onAddToCart,
 }: Props) {
   const hasVariants = !!product.variants?.length;
   const availableVariants = hasVariants ? product.variants!.filter(v => v.stock > 0) : [];
-  const isAllOutOfStock = hasVariants && availableVariants.length === 0;
+  const isAllOutOfStock = !hasVariants || availableVariants.length === 0;
 
   return (
     <article className="product bg-white rounded-[28px] p-3 md:p-4 shadow-[0_10px_30px_-18px_rgba(0,0,0,0.15)]">
@@ -68,7 +70,7 @@ export function ProductCard({
           <label htmlFor={`age-${product.id}`} className="text-[11px] text-[#7a766f]">Age:</label>
           <select
             id={`age-${product.id}`}
-            className="year-select"
+            className={`year-select ${hasError ? 'error' : ''}`}
             value={selectedYear || ''}
             onChange={(e) => onYearChange(product, e.target.value)}
             disabled={isAllOutOfStock}
@@ -78,6 +80,11 @@ export function ProductCard({
               <option key={v.year} value={v.year}>{v.year}Y</option>
             ))}
           </select>
+          {hasError && (
+            <span className="text-[10px] text-red-500 font-semibold animate-pulse">
+              Please select age
+            </span>
+          )}
         </div>
 
         {/* Price + Add button */}
