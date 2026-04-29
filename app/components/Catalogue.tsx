@@ -35,12 +35,9 @@ export default function Catalogue({ initialCategories, initialProducts }: Catalo
   );
 
   // Handlers
-  const onAddToCart = useCallback((product: Product) => {
+  const onAddToCart = useCallback((product: Product, openCart: boolean = true) => {
     const year = selections[product.id];
-    if (!year) {
-      alert('Please select an age first');
-      return;
-    }
+    // Validation is now handled in ProductCard component locally
 
     const hasVariants = !!product.variants?.length;
     const variant = hasVariants ? product.variants!.find(v => v.year === year) : null;
@@ -62,7 +59,9 @@ export default function Catalogue({ initialCategories, initialProducts }: Catalo
       maxStock
     });
 
-    setIsCartOpen(true);
+    if (openCart) {
+      setIsCartOpen(true);
+    }
     setProductAdded(product.id);
   }, [selections, prices, addToCart, setProductAdded]);
 
@@ -115,7 +114,7 @@ export default function Catalogue({ initialCategories, initialProducts }: Catalo
                   />
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                   {catProducts.map(product => (
                     <ProductCard 
                       key={product.id}
