@@ -1,4 +1,5 @@
 import { Product } from './types';
+import { getAgeRange } from '@/lib/productUtils';
 
 type Props = {
   product: Product;
@@ -41,9 +42,9 @@ export function ProductCard({
           </div>
         )}
 
-        {product.ageRange && (
+        {getAgeRange(product.variants) && (
           <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur text-[11px] font-medium">
-            {product.ageRange}
+            {getAgeRange(product.variants)}
           </span>
         )}
 
@@ -73,14 +74,9 @@ export function ProductCard({
             disabled={isAllOutOfStock}
           >
             <option value="">{isAllOutOfStock ? 'Sold Out' : 'Select'}</option>
-            {hasVariants
-              ? availableVariants.map(v => (
-                  <option key={v.year} value={v.year}>{v.year}Y</option>
-                ))
-              : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(y => (
-                  <option key={y} value={y}>{y}Y</option>
-                ))
-            }
+            {availableVariants.map(v => (
+              <option key={v.year} value={v.year}>{v.year}Y</option>
+            ))}
           </select>
         </div>
 

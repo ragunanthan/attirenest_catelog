@@ -65,7 +65,6 @@ export default async function Home() {
     features: prod.features,
     description: prod.description,
     basePrice: prod.basePrice,
-    ageRange: prod.ageRange,
     badge: prod.badge || undefined,
     badgeBg: prod.badgeBg || undefined,
     badgeColor: prod.badgeColor || undefined,

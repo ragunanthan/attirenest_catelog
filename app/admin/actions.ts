@@ -39,7 +39,6 @@ export async function addProductAction(prevState: { error?: string; success?: st
   const features = formData.get('features') as string;
   const description = formData.get('description') as string;
   const basePrice = Number(formData.get('basePrice'));
-  const ageRange = formData.get('ageRange') as string;
   const image = formData.get('image') as string;
   const badge = formData.get('badge') as string;
   const badgeBg = formData.get('badgeBg') as string;
@@ -61,7 +60,6 @@ export async function addProductAction(prevState: { error?: string; success?: st
       features,
       description,
       basePrice,
-      ageRange,
       image,
       badge: badge || undefined,
       badgeBg: badgeBg || undefined,
@@ -72,9 +70,9 @@ export async function addProductAction(prevState: { error?: string; success?: st
     await newProduct.save();
     revalidatePath('/');
     return { success: 'Product added successfully!' };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error adding product:', error);
-    return { error: 'Failed to add product. Please check the database connection.' };
+    return { error: `Failed to add product: ${error.message || 'Unknown error'}` };
   }
 }
 
@@ -89,7 +87,6 @@ export async function updateProductAction(prevState: { error?: string; success?:
   const features = formData.get('features') as string;
   const description = formData.get('description') as string;
   const basePrice = Number(formData.get('basePrice'));
-  const ageRange = formData.get('ageRange') as string;
   const image = formData.get('image') as string;
   const badge = formData.get('badge') as string;
   const badgeBg = formData.get('badgeBg') as string;
@@ -105,7 +102,6 @@ export async function updateProductAction(prevState: { error?: string; success?:
       features,
       description,
       basePrice,
-      ageRange,
       image,
       badge: badge || undefined,
       badgeBg: badgeBg || undefined,
@@ -114,9 +110,9 @@ export async function updateProductAction(prevState: { error?: string; success?:
     });
     revalidatePath('/');
     return { success: 'Product updated successfully!' };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating product:', error);
-    return { error: 'Failed to update product.' };
+    return { error: `Failed to update product: ${error.message || 'Unknown error'}` };
   }
 }
 

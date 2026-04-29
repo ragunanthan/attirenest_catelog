@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { deleteProductAction } from '../actions';
 import AddProductForm from './AddProductForm';
+import { getAgeRange } from '@/lib/productUtils';
 
 type Variant = {
   year: number;
@@ -17,7 +18,6 @@ type Product = {
   features: string;
   description: string;
   basePrice: number;
-  ageRange: string;
   badge?: string;
   badgeBg?: string;
   badgeColor?: string;
@@ -96,7 +96,7 @@ export default function ProductList({
                 </td>
                 <td className="py-4 px-2">
                   <div className="text-sm font-medium text-[#2E2A27]">{product.name}</div>
-                  <div className="text-[11px] text-[#7a766f]">{product.ageRange}</div>
+                  <div className="text-[11px] text-[#7a766f]">{getAgeRange(product.variants)}</div>
                 </td>
                 <td className="py-4 px-2 text-sm text-[#6b6762]">
                   {categories.find(c => c.id === product.categoryId)?.name || product.categoryId}
