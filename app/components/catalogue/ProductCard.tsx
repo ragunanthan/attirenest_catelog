@@ -8,6 +8,7 @@ type Props = {
   displayPrice: number;
   isPriceAnimating: boolean;
   isAdded: boolean;
+  hasError: boolean;
   onYearChange: (product: Product, yearStr: string) => void;
   onAddToCart: (product: Product, openCart: boolean) => void;
 };
@@ -18,6 +19,7 @@ export function ProductCard({
   displayPrice,
   isPriceAnimating,
   isAdded,
+  hasError,
   onYearChange,
   onAddToCart,
 }: Props) {
@@ -25,7 +27,7 @@ export function ProductCard({
 
   const hasVariants = !!product.variants?.length;
   const availableVariants = hasVariants ? product.variants!.filter(v => v.stock > 0) : [];
-  const isAllOutOfStock = hasVariants && availableVariants.length === 0;
+  const isAllOutOfStock = !hasVariants || availableVariants.length === 0;
 
   // Clear error when year is selected
   useEffect(() => {
@@ -86,7 +88,7 @@ export function ProductCard({
           <label htmlFor={`age-${product.id}`} className="text-[11px] text-[#7a766f]">Age:</label>
           <select
             id={`age-${product.id}`}
-            className="year-select"
+            className={`year-select ${hasError ? 'error' : ''}`}
             value={selectedYear || ''}
             onChange={(e) => onYearChange(product, e.target.value)}
             disabled={isAllOutOfStock}
@@ -96,6 +98,11 @@ export function ProductCard({
               <option key={v.year} value={v.year}>{v.year}Y</option>
             ))}
           </select>
+          {hasError && (
+            <span className="text-[10px] text-red-500 font-semibold animate-pulse">
+              Please select age
+            </span>
+          )}
         </div>
 
         {/* Price + Action Buttons */}

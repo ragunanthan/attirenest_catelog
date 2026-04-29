@@ -20,7 +20,7 @@ export default function Catalogue({ initialCategories, initialProducts }: Catalo
   // Custom Hooks
   const { cart, addToCart, changeQty, removeFromCart, clearCart, totalCount, totalPrice } = useCart();
   const { activeTab, sectionsRef } = useScrollSpy(categories, products);
-  const { selections, prices, animatingPrices, addedFlags, handleYearChange, setProductAdded } = useProductState(products);
+  const { selections, prices, animatingPrices, addedFlags, errorFlags, handleYearChange, setProductAdded, triggerError } = useProductState(products);
   
   const handlePaymentSuccess = useCallback(() => {
     clearCart();
@@ -123,6 +123,7 @@ export default function Catalogue({ initialCategories, initialProducts }: Catalo
                       displayPrice={prices[product.id] || product.basePrice}
                       isPriceAnimating={animatingPrices[product.id]}
                       isAdded={addedFlags[product.id]}
+                      hasError={errorFlags[product.id]}
                       onYearChange={handleYearChange}
                       onAddToCart={onAddToCart}
                     />
