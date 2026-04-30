@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useRef, useEffect, useState } from 'react';
+import { useActionState, useRef, useEffect, useState, useTransition } from 'react';
 import { addProductAction, updateProductAction } from '../actions';
 
 type Category = {
@@ -24,8 +24,14 @@ type Product = {
   badge?: string;
   badgeBg?: string;
   badgeColor?: string;
-  image: string;
+  images: string[];
   variants?: Variant[];
+};
+
+type FilePreview = {
+  id: string;
+  file: File;
+  url: string;
 };
 
 export default function AddProductForm({ 
@@ -39,16 +45,25 @@ export default function AddProductForm({
 }) {
   const isEditing = !!product;
   const action = isEditing ? updateProductAction : addProductAction;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [state, formAction, isPending] = useActionState(action, null as any);
   const formRef = useRef<HTMLFormElement>(null);
+  const [isPendingLocal, startTransition] = useTransition();
 
   const [variants, setVariants] = useState<Variant[]>(product?.variants || []);
+  const [existingImages, setExistingImages] = useState<string[]>(product?.images || []);
+  const [newFiles, setNewFiles] = useState<FilePreview[]>([]);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  const MAX_FILE_SIZE = 4.5 * 1024 * 1024; // 4.5MB
+  const MAX_TOTAL_SIZE = 20 * 1024 * 1024; // 20MB
 
   useEffect(() => {
     if (state?.success && formRef.current && !isEditing) {
       formRef.current.reset();
       setVariants([]);
+      setNewFiles([]);
+      setExistingImages([]);
+      setLocalError(null);
     }
   }, [state, isEditing]);
 
@@ -69,10 +84,65 @@ export default function AddProductForm({
     });
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLocalError(null);
+    const files = Array.from(e.target.files || []);
+    
+    // Check individual file sizes
+    const oversizedFiles = files.filter(f => f.size > MAX_FILE_SIZE);
+    if (oversizedFiles.length > 0) {
+      setLocalError(`Some files are too large (Max 4.5MB per image): ${oversizedFiles.map(f => f.name).join(', ')}`);
+      e.target.value = '';
+      return;
+    }
+
+    // Check total size
+    const currentTotal = newFiles.reduce((acc, curr) => acc + curr.file.size, 0);
+    const incomingTotal = files.reduce((acc, curr) => acc + curr.size, 0);
+    if (currentTotal + incomingTotal > MAX_TOTAL_SIZE) {
+      setLocalError("Total upload size exceeds 20MB limit. Please upload fewer or smaller images.");
+      e.target.value = '';
+      return;
+    }
+
+    const newPreviews = files.map(file => ({
+      id: Math.random().toString(36).substring(7),
+      file,
+      url: URL.createObjectURL(file)
+    }));
+    setNewFiles(prev => [...prev, ...newPreviews]);
+    e.target.value = '';
+  };
+
+  const removeExistingImage = (index: number) => {
+    setExistingImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeNewFile = (id: string) => {
+    setNewFiles(prev => {
+      const target = prev.find(p => p.id === id);
+      if (target) URL.revokeObjectURL(target.url);
+      return prev.filter(p => p.id !== id);
+    });
+  };
+
+  // Custom form action to handle the file array from state
+  const handleFormAction = (formData: FormData) => {
+    formData.delete('images'); // Clear any default file input value
+    newFiles.forEach(fp => {
+      formData.append('images', fp.file);
+    });
+    formData.set('existingImages', JSON.stringify(existingImages));
+    formData.set('variantsJson', JSON.stringify(variants));
+    
+    startTransition(() => {
+      formAction(formData);
+    });
+  };
+
   return (
-    <form action={formAction} ref={formRef} className="space-y-6">
+    <form action={handleFormAction} ref={formRef} className="space-y-6">
       {isEditing && <input type="hidden" name="id" value={product.id} />}
-      <input type="hidden" name="variantsJson" value={JSON.stringify(variants)} />
 
       <div className="grid md:grid-cols-2 gap-6">
         <div>
@@ -114,7 +184,6 @@ export default function AddProductForm({
           />
         </div>
 
-
         <div>
           <label className="block text-sm font-medium text-[#4a4642] mb-1.5">Default Base Price (₹)</label>
           <input
@@ -126,20 +195,64 @@ export default function AddProductForm({
             placeholder="e.g., 599"
           />
         </div>
-
-        <div>
-          <label className="block text-sm font-medium text-[#4a4642] mb-1.5">Image URL</label>
-          <input
-            type="url"
-            name="image"
-            defaultValue={product?.image}
-            required
-            className="w-full px-4 py-3 rounded-xl border border-[#A8C3A5]/30 focus:outline-none focus:border-[#2E2A27] transition"
-            placeholder="https://images.unsplash.com/..."
-          />
-        </div>
       </div>
 
+      {/* Image Upload Section */}
+      <div className="pt-4 border-t border-[#A8C3A5]/10">
+        <label className="block text-sm font-medium text-[#4a4642] mb-3">Product Images</label>
+        
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4 mb-4">
+          {/* Existing Images */}
+          {existingImages.map((url, idx) => (
+            <div key={`exist-${idx}`} className="relative aspect-square rounded-xl overflow-hidden border border-[#A8C3A5]/20 group shadow-sm">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={url} alt="Existing" className="w-full h-full object-cover" />
+              <button 
+                type="button"
+                onClick={() => removeExistingImage(idx)}
+                className="absolute top-1.5 right-1.5 bg-red-500/90 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600 shadow-md scale-90 group-hover:scale-100"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+              <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[8px] py-1 text-center font-bold tracking-wider">EXISTING</div>
+            </div>
+          ))}
+
+          {/* Previews of New Files */}
+          {newFiles.map((fp) => (
+            <div key={fp.id} className="relative aspect-square rounded-xl overflow-hidden border-2 border-dashed border-[#5A7A56]/30 group shadow-sm">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={fp.url} alt="New preview" className="w-full h-full object-cover opacity-90" />
+              <button 
+                type="button"
+                onClick={() => removeNewFile(fp.id)}
+                className="absolute top-1.5 right-1.5 bg-red-500/90 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600 shadow-md scale-90 group-hover:scale-100"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+              <div className="absolute bottom-0 left-0 right-0 bg-[#5A7A56]/80 text-white text-[8px] py-1 text-center font-bold tracking-wider">NEW</div>
+            </div>
+          ))}
+
+          {/* Upload Button Placeholder */}
+          <label className="relative aspect-square rounded-xl border-2 border-dashed border-[#A8C3A5]/40 hover:border-[#2E2A27]/40 transition-all cursor-pointer flex flex-col items-center justify-center gap-2 bg-[#A8C3A5]/5 hover:bg-[#A8C3A5]/10">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6b6762" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            <span className="text-[10px] font-semibold text-[#6b6762] uppercase tracking-wider text-center px-2">Add Photo</span>
+            <input 
+              type="file" 
+              multiple 
+              accept="image/*"
+              onChange={handleFileChange}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+            />
+          </label>
+        </div>
+        <p className="text-[11px] text-[#9a938c]">
+          Upload high-quality images (Max 4.5MB per image). The first image will be the main thumbnail.
+        </p>
+      </div>
+
+      {/* Stock & Variants */}
       <div className="pt-4 border-t border-[#A8C3A5]/10">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-sm font-semibold text-[#4a4642]">Stock & Price per Year</h3>
@@ -256,15 +369,19 @@ export default function AddProductForm({
         </div>
       </div>
 
-      {state?.error && (
-        <p className="text-red-500 text-sm text-center">{state.error}</p>
+      {localError && (
+        <p className="text-red-500 text-sm text-center font-medium bg-red-50 py-2 rounded-lg border border-red-100">{localError}</p>
+      )}
+
+      {(state?.error) && (
+        <p className="text-red-500 text-sm text-center font-medium bg-red-50 py-2 rounded-lg">{state.error}</p>
       )}
       
       {state?.success && (
-        <p className="text-green-600 text-sm text-center font-medium">{state.success}</p>
+        <p className="text-green-600 text-sm text-center font-medium bg-green-50 py-2 rounded-lg">{state.success}</p>
       )}
 
-      <div className="flex gap-4">
+      <div className="flex gap-4 pt-2">
         {isEditing && (
           <button
             type="button"
@@ -276,10 +393,11 @@ export default function AddProductForm({
         )}
         <button
           type="submit"
-          disabled={isPending}
-          className="flex-[2] py-4 rounded-xl bg-[#2E2A27] text-white font-semibold hover:opacity-90 transition disabled:opacity-50 shadow-lg shadow-[#2E2A27]/20"
+          disabled={isPending || isPendingLocal}
+          className="flex-[2] py-4 rounded-xl bg-[#2E2A27] text-white font-semibold hover:opacity-90 transition disabled:opacity-50 shadow-lg shadow-[#2E2A27]/20 flex items-center justify-center gap-2"
         >
-          {isPending ? (isEditing ? 'Updating...' : 'Adding...') : (isEditing ? 'Update Product' : 'Add Product to Catalogue')}
+          {(isPending || isPendingLocal) && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+          {(isPending || isPendingLocal) ? (isEditing ? 'Updating...' : 'Adding...') : (isEditing ? 'Update Product' : 'Add Product to Catalogue')}
         </button>
       </div>
     </form>

@@ -5,6 +5,7 @@ import { createSession, getSession, deleteSession } from '@/lib/session';
 import dbConnect from '@/lib/mongodb';
 import Product from '@/lib/models/Product';
 import { revalidatePath } from 'next/cache';
+import { put } from "@vercel/blob";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function loginAction(prevState: { error?: string } | any, formData: FormData) {
@@ -39,16 +40,33 @@ export async function addProductAction(prevState: { error?: string; success?: st
   const features = formData.get('features') as string;
   const description = formData.get('description') as string;
   const basePrice = Number(formData.get('basePrice'));
-  const image = formData.get('image') as string;
   const badge = formData.get('badge') as string;
   const badgeBg = formData.get('badgeBg') as string;
   const badgeColor = formData.get('badgeColor') as string;
   const variantsJson = formData.get('variantsJson') as string;
   const variants = JSON.parse(variantsJson || '[]');
 
+  // Handle Multiple Image Uploads
+  const imageFiles = formData.getAll('images') as File[];
+  const imageUrls: string[] = [];
+
   try {
+    for (const file of imageFiles) {
+      if (file.size > 0) {
+        const blob = await put(`products/${Date.now()}-${file.name}`, file, {
+          access: 'public',
+          addRandomSuffix: true
+        });
+        imageUrls.push(blob.url);
+      }
+    }
+
+    if (imageUrls.length === 0) {
+      return { error: 'At least one image is required.' };
+    }
+
     await dbConnect();
-    
+
     // Find highest ID and increment
     const lastProduct = await Product.findOne().sort({ id: -1 });
     const nextId = lastProduct ? lastProduct.id + 1 : 1;
@@ -60,7 +78,7 @@ export async function addProductAction(prevState: { error?: string; success?: st
       features,
       description,
       basePrice,
-      image,
+      images: imageUrls,
       badge: badge || undefined,
       badgeBg: badgeBg || undefined,
       badgeColor: badgeColor || undefined,
@@ -87,14 +105,34 @@ export async function updateProductAction(prevState: { error?: string; success?:
   const features = formData.get('features') as string;
   const description = formData.get('description') as string;
   const basePrice = Number(formData.get('basePrice'));
-  const image = formData.get('image') as string;
   const badge = formData.get('badge') as string;
   const badgeBg = formData.get('badgeBg') as string;
   const badgeColor = formData.get('badgeColor') as string;
   const variantsJson = formData.get('variantsJson') as string;
   const variants = JSON.parse(variantsJson || '[]');
 
+  const existingImagesJson = formData.get('existingImages') as string;
+  const existingImages = JSON.parse(existingImagesJson || '[]');
+  const newImageFiles = formData.getAll('images') as File[];
+
   try {
+    const newImageUrls: string[] = [];
+    for (const file of newImageFiles) {
+      if (file.size > 0) {
+        const blob = await put(`products/${Date.now()}-${file.name}`, file, {
+          access: 'public',
+          addRandomSuffix: true
+        });
+        newImageUrls.push(blob.url);
+      }
+    }
+
+    const finalImages = [...existingImages, ...newImageUrls];
+
+    if (finalImages.length === 0) {
+      return { error: 'At least one image is required.' };
+    }
+
     await dbConnect();
     await Product.findOneAndUpdate({ id }, {
       name,
@@ -102,7 +140,7 @@ export async function updateProductAction(prevState: { error?: string; success?:
       features,
       description,
       basePrice,
-      image,
+      images: finalImages,
       badge: badge || undefined,
       badgeBg: badgeBg || undefined,
       badgeColor: badgeColor || undefined,

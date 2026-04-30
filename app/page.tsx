@@ -21,11 +21,10 @@ interface LeanProduct {
   features: string;
   description: string;
   basePrice: number;
-  ageRange: string;
   badge?: string;
   badgeBg?: string;
   badgeColor?: string;
-  image: string;
+  images: string[];
   variants?: Array<{
     year: number;
     price: number;
@@ -68,7 +67,7 @@ export default async function Home() {
     badge: prod.badge || undefined,
     badgeBg: prod.badgeBg || undefined,
     badgeColor: prod.badgeColor || undefined,
-    image: prod.image,
+    images: prod.images || [],
     variants: prod.variants ? prod.variants.map((v) => ({
       year: v.year,
       price: v.price,

@@ -21,7 +21,7 @@ export type Product = {
   badge?: string;
   badgeBg?: string;
   badgeColor?: string;
-  image: string;
+  images: string[];
   variants?: Variant[];
 };
 

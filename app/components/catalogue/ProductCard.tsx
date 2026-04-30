@@ -50,7 +50,7 @@ export function ProductCard({
       <div className="relative aspect-[4/5] rounded-[20px] overflow-hidden flex items-center justify-center bg-[#f5f5f5]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={product.image}
+          src={product.images?.[0]}
           alt={product.name}
           className={`w-full h-full object-cover transition duration-500 hover:scale-105 ${isAllOutOfStock ? 'grayscale opacity-60' : ''}`}
           loading="lazy"
@@ -117,7 +117,7 @@ export function ProductCard({
               </span>
             )}
           </div>
-          
+
           <div className="flex flex-col sm:flex-row gap-1.5">
             <button
               className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold border-[1.5px] border-[#A8C3A5] text-[#5A7A56] hover:bg-[#A8C3A5]/10 transition flex items-center justify-center gap-1 ${isAllOutOfStock ? 'opacity-50 cursor-not-allowed' : ''} ${error ? 'border-red-300' : ''}`}
@@ -127,7 +127,7 @@ export function ProductCard({
             >
               {isAdded ? '✅' : '🛒'} {isAdded ? 'Added' : 'Cart'}
             </button>
-            
+
             <button
               className={`flex-[1.2] py-1.5 rounded-lg text-[11px] font-bold bg-[#5A7A56] text-white hover:opacity-90 shadow-sm transition ${isAllOutOfStock ? 'opacity-50 cursor-not-allowed' : ''} ${error ? 'bg-red-500' : ''}`}
               onClick={() => handleAction(true)}
