@@ -21,7 +21,7 @@ type Product = {
   badge?: string;
   badgeBg?: string;
   badgeColor?: string;
-  image: string;
+  images: string[];
   variants?: Variant[];
 };
 
@@ -91,7 +91,7 @@ export default function ProductList({
                 <td className="py-4 px-2">
                   <div className="w-12 h-12 rounded-lg overflow-hidden bg-[#f5f5f5]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                    <img src={product.images?.[0] || '/placeholder.png'} alt={product.name} className="w-full h-full object-cover" />
                   </div>
                 </td>
                 <td className="py-4 px-2">

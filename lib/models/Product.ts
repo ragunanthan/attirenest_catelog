@@ -16,7 +16,7 @@ export interface IProduct extends mongoose.Document {
   badge?: string;
   badgeBg?: string;
   badgeColor?: string;
-  image: string;
+  images: string[];
   variants: IVariant[];
 }
 
@@ -36,7 +36,7 @@ const ProductSchema = new mongoose.Schema<IProduct>({
   badge: { type: String, required: false },
   badgeBg: { type: String, required: false },
   badgeColor: { type: String, required: false },
-  image: { type: String, required: true },
+  images: { type: [String], required: true },
   variants: [VariantSchema],
 });
 
