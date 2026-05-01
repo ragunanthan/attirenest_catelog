@@ -91,12 +91,31 @@ export function useRazorpay(
           }
         },
         theme: { color: '#5A7A56' },
-        modal: { ondismiss: () => setIsLoading(false) },
+        modal: { 
+          ondismiss: async () => {
+            setIsLoading(false);
+            // Only update if not already success or failed
+            if (!paymentSuccess) {
+              await fetch('/api/razorpay/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId: data.orderId, status: 'cancelled' }),
+              });
+            }
+          } 
+        },
       });
 
-      rzp.on('payment.failed', () => {
-        alert('Payment failed. Please try again.');
+      rzp.on('payment.failed', async (response: any) => {
+        console.error('Payment failed:', response.error);
+        alert('Payment failed: ' + (response.error.description || 'Please try again.'));
         setIsLoading(false);
+        
+        await fetch('/api/razorpay/cancel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId: data.orderId, status: 'failed' }),
+        });
       });
 
       rzp.open();
