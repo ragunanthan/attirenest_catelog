@@ -23,7 +23,7 @@ export interface IOrder extends mongoose.Document {
   paymentId?: string;
   amount: number;
   currency: string;
-  status: 'pending' | 'paid' | 'failed';
+  status: 'pending' | 'paid' | 'failed' | 'cancelled';
   items: IOrderItem[];
   shippingAddress: IShippingAddress;
   customerInfo?: {
@@ -40,7 +40,7 @@ const OrderSchema = new mongoose.Schema<IOrder>({
   paymentId: { type: String },
   amount: { type: Number, required: true },
   currency: { type: String, required: true, default: 'INR' },
-  status: { type: String, enum: ['pending', 'paid', 'failed'], default: 'pending' },
+  status: { type: String, enum: ['pending', 'paid', 'failed', 'cancelled'], default: 'pending' },
   items: [
     {
       productId: { type: Number, required: true },

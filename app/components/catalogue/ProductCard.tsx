@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Product } from './types';
 import { getAgeRange } from '@/lib/productUtils';
+import ImageCarousel from '@/components/ui/ImageCarousel';
 
 type Props = {
   product: Product;
@@ -45,32 +46,34 @@ export function ProductCard({
   };
 
   return (
-    <article className="product bg-white rounded-[28px] p-3 md:p-4 shadow-[0_10px_30px_-18px_rgba(0,0,0,0.15)]">
-      {/* Image */}
-      <div className="relative aspect-[4/5] rounded-[20px] overflow-hidden flex items-center justify-center bg-[#f5f5f5]">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={product.images?.[0]}
-          alt={product.name}
-          className={`w-full h-full object-cover transition duration-500 hover:scale-105 ${isAllOutOfStock ? 'grayscale opacity-60' : ''}`}
-          loading="lazy"
+    <article className="product bg-white rounded-[28px] p-3 md:p-4 shadow-[0_10px_30px_-18px_rgba(0,0,0,0.15)] group/card">
+      {/* Image Carousel Component */}
+      <div className="relative aspect-[4/5] rounded-[20px] overflow-hidden bg-[#f5f5f5]">
+        <ImageCarousel 
+          images={product.images} 
+          alt={product.name} 
+          isAllOutOfStock={isAllOutOfStock}
+          className="w-full h-full"
         />
 
+        {/* Sold Out Overlay */}
         {isAllOutOfStock && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[2px] z-10">
             <span className="px-4 py-2 bg-white/90 rounded-full text-xs font-bold text-red-500 shadow-lg">SOLD OUT</span>
           </div>
         )}
 
+        {/* Age Range Badge */}
         {getAgeRange(product.variants) && (
-          <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur text-[11px] font-medium">
+          <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur text-[11px] font-medium z-10">
             {getAgeRange(product.variants)}
           </span>
         )}
 
+        {/* Product Badge */}
         {product.badge && (
           <span
-            className="absolute bottom-3 right-3 px-2 py-1 rounded-full text-[10px] uppercase font-medium"
+            className="absolute top-3 right-3 px-2 py-1 rounded-full text-[10px] uppercase font-bold shadow-sm z-10"
             style={{ background: product.badgeBg ?? '#A8C3A5', color: product.badgeColor ?? '#fff' }}
           >
             {product.badge}
