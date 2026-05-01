@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 export interface IOrderItem {
   productId: number;
   name: string;
-  year: number;
+  year: string;
   price: number;
   qty: number;
 }
@@ -45,7 +45,7 @@ const OrderSchema = new mongoose.Schema<IOrder>({
     {
       productId: { type: Number, required: true },
       name: { type: String, required: true },
-      year: { type: Number, required: true },
+      year: { type: String, required: true },
       price: { type: Number, required: true },
       qty: { type: Number, required: true },
     }

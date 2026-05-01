@@ -6,7 +6,7 @@ import AddProductForm from './AddProductForm';
 import { getAgeRange } from '@/lib/productUtils';
 
 type Variant = {
-  year: number;
+  year: string;
   price: number;
   stock: number;
 };

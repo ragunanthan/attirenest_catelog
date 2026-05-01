@@ -6,7 +6,7 @@ export type Category = {
 };
 
 export type Variant = {
-  year: number;
+  year: string;
   price: number;
   stock: number;
 };
@@ -28,7 +28,7 @@ export type Product = {
 export type CartItem = {
   id: number;
   name: string;
-  year: number;
+  year: string;
   price: number;
   qty: number;
   maxStock: number;

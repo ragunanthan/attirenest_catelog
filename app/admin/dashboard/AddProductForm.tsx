@@ -9,7 +9,7 @@ type Category = {
 };
 
 type Variant = {
-  year: number;
+  year: string;
   price: number;
   stock: number;
 };
@@ -68,7 +68,7 @@ export default function AddProductForm({
   }, [state, isEditing]);
 
   const addVariant = () => {
-    setVariants(prev => [...prev, { year: 1, price: 0, stock: 0 }]);
+    setVariants(prev => [...prev, { year: '', price: 0, stock: 0 }]);
   };
 
   const removeVariant = (index: number) => {
@@ -76,6 +76,15 @@ export default function AddProductForm({
   };
 
   const updateVariant = (index: number, field: keyof Variant, value: string) => {
+    if (field === 'year') {
+      setVariants(prev => {
+        const next = [...prev];
+        next[index] = { ...next[index], year: value };
+        return next;
+      });
+      return;
+    }
+    
     const numVal = value === '' ? 0 : Number(value);
     setVariants(prev => {
       const next = [...prev];
@@ -274,13 +283,11 @@ export default function AddProductForm({
                 <div className="flex-1">
                   <label className="block text-[10px] font-medium text-[#7a766f] mb-1 uppercase">Year</label>
                   <input
-                    type="number"
-                    min={1}
-                    max={14}
-                    value={String(variant.year)}
+                    type="text"
+                    value={variant.year}
                     onChange={(e) => updateVariant(index, 'year', e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-[#A8C3A5]/30 text-sm focus:outline-none"
-                    placeholder="e.g. 2"
+                    placeholder="e.g. 1y 6m"
                     required
                   />
                 </div>

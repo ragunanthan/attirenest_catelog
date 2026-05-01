@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 export interface IVariant {
-  year: number;
+  year: string;
   price: number;
   stock: number;
 }
@@ -21,7 +21,7 @@ export interface IProduct extends mongoose.Document {
 }
 
 const VariantSchema = new mongoose.Schema<IVariant>({
-  year: { type: Number, required: true },
+  year: { type: String, required: true },
   price: { type: Number, required: true },
   stock: { type: Number, required: true, default: 0 },
 });
