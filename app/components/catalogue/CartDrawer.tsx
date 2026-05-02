@@ -65,7 +65,7 @@ export function CartDrawer({
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600, fontSize: '14px' }}>{item.name}</div>
                   <div style={{ fontSize: '12px', color: '#7a766f', marginTop: '2px' }}>
-                    Age: {item.year}Y &middot; ₹{item.price.toLocaleString('en-IN')} each
+                    Age: {item.year} &middot; ₹{item.price.toLocaleString('en-IN')} each
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
                     <button

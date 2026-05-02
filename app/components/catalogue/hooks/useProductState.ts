@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { Product } from '../types';
 
 export function useProductState(initialProducts: Product[]) {
-  const [selections, setSelections] = useState<Record<number, number>>({});
+  const [selections, setSelections] = useState<Record<number, string>>({});
   const [prices, setPrices] = useState<Record<number, number>>(() => {
     const initPrices: Record<number, number> = {};
     initialProducts.forEach((p) => { initPrices[p.id] = p.basePrice; });
@@ -13,15 +13,14 @@ export function useProductState(initialProducts: Product[]) {
   const [errorFlags, setErrorFlags] = useState<Record<number, boolean>>({});
 
   const handleYearChange = useCallback((product: Product, yearStr: string) => {
-    const year = parseInt(yearStr);
     setErrorFlags(prev => ({ ...prev, [product.id]: false }));
-    if (!year) {
-      setSelections(prev => ({ ...prev, [product.id]: 0 }));
+    if (!yearStr) {
+      setSelections(prev => ({ ...prev, [product.id]: '' }));
       setPrices(prev => ({ ...prev, [product.id]: product.basePrice }));
       return;
     }
-    setSelections(prev => ({ ...prev, [product.id]: year }));
-    const variant = product.variants?.find(v => v.year === year);
+    setSelections(prev => ({ ...prev, [product.id]: yearStr }));
+    const variant = product.variants?.find(v => v.year === yearStr);
     setPrices(prev => ({ ...prev, [product.id]: variant ? variant.price : product.basePrice }));
     setAnimatingPrices(prev => ({ ...prev, [product.id]: false }));
     setTimeout(() => setAnimatingPrices(prev => ({ ...prev, [product.id]: true })), 10);

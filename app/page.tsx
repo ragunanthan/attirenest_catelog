@@ -26,7 +26,7 @@ interface LeanProduct {
   badgeColor?: string;
   images: string[];
   variants?: Array<{
-    year: number;
+    year: string;
     price: number;
     stock: number;
   }>;
@@ -69,7 +69,7 @@ export default async function Home() {
     badgeColor: prod.badgeColor || undefined,
     images: prod.images || [],
     variants: prod.variants ? prod.variants.map((v) => ({
-      year: v.year,
+      year: String(v.year),
       price: v.price,
       stock: v.stock
     })) : []

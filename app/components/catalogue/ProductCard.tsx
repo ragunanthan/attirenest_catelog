@@ -5,7 +5,7 @@ import ImageCarousel from '@/components/ui/ImageCarousel';
 
 type Props = {
   product: Product;
-  selectedYear: number;
+  selectedYear: string;
   displayPrice: number;
   isPriceAnimating: boolean;
   isAdded: boolean;
@@ -98,7 +98,7 @@ export function ProductCard({
           >
             <option value="">{isAllOutOfStock ? 'Sold Out' : 'Select'}</option>
             {availableVariants.map(v => (
-              <option key={v.year} value={v.year}>{v.year}Y</option>
+              <option key={v.year} value={v.year}>{v.year}</option>
             ))}
           </select>
           {hasError && (
