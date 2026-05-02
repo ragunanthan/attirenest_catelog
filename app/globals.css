@@ -384,10 +384,6 @@ h1, h2, h3 {
 
 .pay-btn {
   width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
   background: linear-gradient(135deg, #5A7A56 0%, #3d5a39 100%);
   color: white;
   padding: 14px;
@@ -419,34 +415,32 @@ h1, h2, h3 {
   to { transform: rotate(360deg); }
 }
 
-/* Mobile: stack columns vertically */
+/* Mobile: Optimized for multi-step flow */
 @media (max-width: 720px) {
   .checkout-modal {
-    width: 96vw;
-    max-height: 96vh;
-    border-radius: 20px;
+    width: 100vw;
+    height: 100dvh;
+    border-radius: 0;
   }
 
   .checkout-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    max-height: none;
     overflow-y: auto;
   }
 
   .checkout-left, .checkout-right {
+    height: auto !important;
     max-height: none !important;
     overflow-y: visible !important;
-    padding: 24px 20px;
-  }
-
-  .checkout-left {
+    padding: 24px 16px;
     border-right: none;
   }
 
   .checkout-right {
-    border-bottom: 1px solid #f0ede8;
-    background: #fafaf8;
+    background: #fff;
   }
 
   .checkout-items {
