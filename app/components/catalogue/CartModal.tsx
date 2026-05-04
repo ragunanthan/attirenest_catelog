@@ -140,7 +140,7 @@ export function CartModal({
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="sm:max-w-[960px] max-h-[92vh] p-0 gap-0 overflow-hidden"
+        className="sm:max-w-[960px] max-h-[92vh] p-0 gap-0 overflow-hidden flex flex-col"
         showCloseButton={true}
       >
         <DialogHeader className="sr-only">

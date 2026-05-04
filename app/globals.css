@@ -426,17 +426,18 @@ h1, h2, h3 {
   .checkout-grid {
     display: flex;
     flex-direction: column;
-    height: auto;
-    max-height: none;
-    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .checkout-left, .checkout-right {
-    height: auto !important;
-    max-height: none !important;
-    overflow-y: visible !important;
-    padding: 24px 16px;
+    flex: 1;
+    min-height: 0;
+    padding: 20px 16px;
     border-right: none;
+    display: flex;
+    flex-direction: column;
   }
 
   .checkout-right {
@@ -444,8 +445,8 @@ h1, h2, h3 {
   }
 
   .checkout-items {
-    max-height: none !important;
-    overflow-y: visible !important;
+    flex: 1;
+    overflow-y: auto;
   }
 }
 
