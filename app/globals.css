@@ -384,10 +384,6 @@ h1, h2, h3 {
 
 .pay-btn {
   width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
   background: linear-gradient(135deg, #5A7A56 0%, #3d5a39 100%);
   color: white;
   padding: 14px;
@@ -419,39 +415,38 @@ h1, h2, h3 {
   to { transform: rotate(360deg); }
 }
 
-/* Mobile: stack columns vertically */
+/* Mobile: Optimized for multi-step flow */
 @media (max-width: 720px) {
   .checkout-modal {
-    width: 96vw;
-    max-height: 96vh;
-    border-radius: 20px;
+    width: 100vw;
+    height: 100dvh;
+    border-radius: 0;
   }
 
   .checkout-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    max-height: 92vh;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .checkout-left, .checkout-right {
-    max-height: none !important;
-    overflow-y: visible !important;
-    padding: 24px 20px;
-  }
-
-  .checkout-left {
+    flex: 1;
+    min-height: 0;
+    padding: 20px 16px;
     border-right: none;
+    display: flex;
+    flex-direction: column;
   }
 
   .checkout-right {
-    border-bottom: 1px solid #f0ede8;
-    background: #fafaf8;
+    background: #fff;
   }
 
   .checkout-items {
-    max-height: none !important;
-    overflow-y: visible !important;
+    flex: 1;
+    overflow-y: auto;
   }
 }
 
