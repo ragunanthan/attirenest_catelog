@@ -7,6 +7,8 @@ type Props = {
   errors: Partial<Record<keyof ShippingInfo, string>>;
   isLookingUp: boolean;
   lookupDone: boolean;
+  isPincodeLookingUp?: boolean;
+  pincodeLookupDone?: boolean;
   isPaymentLoading: boolean;
   totalPrice: number;
   handlePhoneChange: (val: string) => void;
@@ -20,6 +22,8 @@ export function ShippingForm({
   errors,
   isLookingUp,
   lookupDone,
+  isPincodeLookingUp,
+  pincodeLookupDone,
   isPaymentLoading,
   totalPrice,
   handlePhoneChange,
@@ -64,6 +68,8 @@ export function ShippingForm({
           {isLookingUp && <span className="field-status searching">Searching…</span>}
           {lookupDone && !isLookingUp && <span className="field-status found">✓ Address found</span>}
         </div>
+        <p className="text-[10px] text-[#9a938c] mt-1.5 leading-tight italic">
+          If you have ordered from us before, next time based on the mobile number you can autofill your address.       </p>
         {errors.phone && <span className="field-error-msg">{errors.phone}</span>}
       </div>
 
@@ -143,15 +149,19 @@ export function ShippingForm({
       {/* Pincode */}
       <div className="checkout-field" style={{ maxWidth: '180px' }}>
         <label htmlFor="checkout-pincode">Pincode *</label>
-        <input
-          id="checkout-pincode"
-          type="text"
-          value={shipping.pincode}
-          onChange={e => updateField('pincode', e.target.value.replace(/\D/g, '').slice(0, 6))}
-          placeholder="6-digit"
-          className={errors.pincode ? 'field-error' : ''}
-          autoComplete="postal-code"
-        />
+        <div style={{ position: 'relative' }}>
+          <input
+            id="checkout-pincode"
+            type="text"
+            value={shipping.pincode}
+            onChange={e => updateField('pincode', e.target.value.replace(/\D/g, '').slice(0, 6))}
+            placeholder="6-digit"
+            className={errors.pincode ? 'field-error' : ''}
+            autoComplete="postal-code"
+          />
+          {isPincodeLookingUp && <span className="field-status searching">Searching…</span>}
+          {pincodeLookupDone && !isPincodeLookingUp && <span className="field-status found">✓ Location found</span>}
+        </div>
         {errors.pincode && <span className="field-error-msg">{errors.pincode}</span>}
       </div>
 
