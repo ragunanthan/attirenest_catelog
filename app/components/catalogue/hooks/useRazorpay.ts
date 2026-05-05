@@ -20,6 +20,7 @@ export function useRazorpay(
 ) {
   const [isLoading, setIsLoading] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [orderNumber, setOrderNumber] = useState<string | null>(null);
 
   // Load Razorpay script on mount
   useEffect(() => {
@@ -76,9 +77,14 @@ export function useRazorpay(
             });
 
             if (verifyRes.ok) {
+              const verifyData = await verifyRes.json();
+              setOrderNumber(verifyData.orderNumber);
               onSuccess();
               setPaymentSuccess(true);
-              setTimeout(() => setPaymentSuccess(false), 5000);
+              setTimeout(() => {
+                setPaymentSuccess(false);
+                setOrderNumber(null);
+              }, 10000); // Show for 10 seconds
             } else {
               const verifyData = await verifyRes.json();
               alert(verifyData.error || 'Payment verification failed');
@@ -126,5 +132,5 @@ export function useRazorpay(
     }
   }, [cart, totalPrice, totalCount, onSuccess]);
 
-  return { handlePayment, isLoading, paymentSuccess };
+  return { handlePayment, isLoading, paymentSuccess, orderNumber };
 }

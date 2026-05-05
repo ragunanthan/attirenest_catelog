@@ -27,7 +27,7 @@ export default function Catalogue({ initialCategories, initialProducts }: Catalo
     setIsCartOpen(false);
   }, [clearCart]);
 
-  const { handlePayment, isLoading: isPaymentLoading, paymentSuccess } = useRazorpay(
+  const { handlePayment, isLoading: isPaymentLoading, paymentSuccess, orderNumber } = useRazorpay(
     cart,
     totalPrice,
     totalCount,
@@ -74,10 +74,17 @@ export default function Catalogue({ initialCategories, initialProducts }: Catalo
       {/* Payment success toast */}
       {paymentSuccess && (
         <div 
-          className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] bg-[#5A7A56] text-white px-6 py-3 rounded-2xl shadow-xl flex items-center gap-3 text-sm font-semibold animate-bounce"
+          className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] bg-[#5A7A56] text-white px-6 py-4 rounded-2xl shadow-xl flex flex-col items-center gap-1 text-sm font-semibold animate-bounce min-w-[300px]"
           role="status"
         >
-          <span>✅</span> Payment Successful! Thank you for your order.
+          <div className="flex items-center gap-2">
+            <span>✅</span> Payment Successful! Thank you.
+          </div>
+          {orderNumber && (
+            <div className="text-[11px] opacity-90 font-mono tracking-wider bg-white/10 px-3 py-1 rounded-lg mt-1">
+              ORDER ID: {orderNumber}
+            </div>
+          )}
         </div>
       )}
 

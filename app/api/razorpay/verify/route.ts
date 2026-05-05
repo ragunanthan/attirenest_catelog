@@ -6,10 +6,10 @@ import Product from '@/lib/models/Product';
 
 export async function POST(req: NextRequest) {
   try {
-    const { 
-      razorpay_order_id, 
-      razorpay_payment_id, 
-      razorpay_signature 
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature
     } = await req.json();
 
     const body = razorpay_order_id + "|" + razorpay_payment_id;
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     // 1. Update order status
     const order = await Order.findOneAndUpdate(
       { orderId: razorpay_order_id },
-      { 
+      {
         status: 'paid',
         paymentId: razorpay_payment_id
       },
@@ -44,17 +44,21 @@ export async function POST(req: NextRequest) {
     // 2. Decrease stock for each item
     for (const item of order.items) {
       await Product.updateOne(
-        { 
-          id: item.productId, 
-          'variants.year': item.year 
+        {
+          id: item.productId,
+          'variants.year': item.year
         },
-        { 
-          $inc: { 'variants.$.stock': -item.qty } 
+        {
+          $inc: { 'variants.$.stock': -item.qty }
         }
       );
     }
 
-    return NextResponse.json({ success: true, orderId: order.orderId });
+    return NextResponse.json({
+      success: true,
+      orderId: order.orderId,
+      orderNumber: order.orderNumber
+    });
   } catch (error) {
     console.error('Payment verification failed:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

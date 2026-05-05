@@ -17,6 +17,11 @@ export async function POST(req: NextRequest) {
     }
 
     await dbConnect();
+    
+    // Generate human-friendly order number: AN-20240504-ABCD
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const orderNumber = `AN-${dateStr}-${randomStr}`;
 
     const order = await razorpay.orders.create({
       amount: Math.round(amount * 100), // Razorpay expects paise
@@ -27,6 +32,7 @@ export async function POST(req: NextRequest) {
     // Save pending order to database
     await Order.create({
       orderId: order.id,
+      orderNumber: orderNumber,
       amount: amount,
       currency: 'INR',
       status: 'pending',
