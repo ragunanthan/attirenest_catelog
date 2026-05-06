@@ -49,6 +49,8 @@ export function CartModal({
   const [shipping, setShipping] = useState<ShippingInfo>(EMPTY_SHIPPING);
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [lookupDone, setLookupDone] = useState(false);
+  const [isPincodeLookingUp, setIsPincodeLookingUp] = useState(false);
+  const [pincodeLookupDone, setPincodeLookupDone] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof ShippingInfo, string>>>({});
   const [step, setStep] = useState<1 | 2>(1); // 1: Summary, 2: Shipping
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -107,9 +109,39 @@ export function CartModal({
     }
   };
 
+  // Pincode lookup
+  const lookupPincode = useCallback(async (pincode: string) => {
+    if (pincode.length !== 6) return;
+    setIsPincodeLookingUp(true);
+    try {
+      const res = await fetch(`/api/pincode/lookup?pincode=${encodeURIComponent(pincode)}`);
+      const data = await res.json();
+      if (data.city && data.state) {
+        setShipping(prev => ({
+          ...prev,
+          city: data.city,
+          state: data.state,
+        }));
+        setPincodeLookupDone(true);
+      }
+    } catch {
+      setPincodeLookupDone(false);
+    } finally {
+      setIsPincodeLookingUp(false);
+    }
+  }, []);
+
   const updateField = (field: keyof ShippingInfo, value: string) => {
     setShipping(prev => ({ ...prev, [field]: value }));
     setErrors(prev => ({ ...prev, [field]: '' }));
+
+    if (field === 'pincode') {
+      setPincodeLookupDone(false);
+      const digits = value.replace(/\D/g, '').slice(0, 6);
+      if (digits.length === 6) {
+        lookupPincode(digits);
+      }
+    }
   };
 
   // Cleanup debounce on unmount
@@ -177,6 +209,8 @@ export function CartModal({
               errors={errors}
               isLookingUp={isLookingUp}
               lookupDone={lookupDone}
+              isPincodeLookingUp={isPincodeLookingUp}
+              pincodeLookupDone={pincodeLookupDone}
               isPaymentLoading={isPaymentLoading}
               totalPrice={totalPrice}
               handlePhoneChange={handlePhoneChange}
