@@ -88,6 +88,21 @@ export function ShippingForm({
         {errors.fullName && <span className="field-error-msg">{errors.fullName}</span>}
       </div>
 
+      {/* Email Address */}
+      <div className="checkout-field">
+        <label htmlFor="checkout-email">Email Address *</label>
+        <input
+          id="checkout-email"
+          type="email"
+          value={shipping.email}
+          onChange={e => updateField('email', e.target.value)}
+          placeholder="your@email.com"
+          className={errors.email ? 'field-error' : ''}
+          autoComplete="email"
+        />
+        {errors.email && <span className="field-error-msg">{errors.email}</span>}
+      </div>
+
       {/* Address Line 1 */}
       <div className="checkout-field">
         <label htmlFor="checkout-addr1">Address Line 1 *</label>

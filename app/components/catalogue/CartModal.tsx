@@ -27,6 +27,7 @@ type Props = {
 
 const EMPTY_SHIPPING: ShippingInfo = {
   fullName: '',
+  email: '',
   phone: '',
   addressLine1: '',
   addressLine2: '',
@@ -154,6 +155,15 @@ export function CartModal({
   const validate = (): boolean => {
     const newErrors: Partial<Record<keyof ShippingInfo, string>> = {};
     if (!shipping.fullName.trim()) newErrors.fullName = 'Name is required';
+    
+    // Email Validation with Regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!shipping.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!emailRegex.test(shipping.email)) {
+      newErrors.email = 'Enter a valid email address';
+    }
+
     if (shipping.phone.length !== 10) newErrors.phone = 'Enter 10-digit phone number';
     if (!shipping.addressLine1.trim()) newErrors.addressLine1 = 'Address is required';
     if (!shipping.city.trim()) newErrors.city = 'City is required';

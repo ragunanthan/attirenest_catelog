@@ -79,7 +79,7 @@ export default async function AdminOrders() {
                           {order.items.map((item: any, idx: number) => (
                             <div key={idx} className="flex gap-2">
                               <span className="font-medium">{item.qty}x</span>
-                              <span>{item.name} ({item.year}Y)</span>
+                              <span>{item.name} ({item.year})</span>
                             </div>
                           ))}
                         </div>
@@ -88,13 +88,12 @@ export default async function AdminOrders() {
                         ₹{order.amount.toLocaleString('en-IN')}
                       </td>
                       <td className="p-6">
-                        <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${
-                          order.status === 'paid' 
-                            ? 'bg-green-100 text-green-600' 
-                            : order.status === 'pending'
+                        <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${order.status === 'paid'
+                          ? 'bg-green-100 text-green-600'
+                          : order.status === 'pending'
                             ? 'bg-amber-100 text-amber-600'
                             : 'bg-red-100 text-red-600'
-                        }`}>
+                          }`}>
                           {order.status}
                         </span>
                       </td>
