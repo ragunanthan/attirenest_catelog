@@ -87,6 +87,7 @@ export function CartModal({
           state: data.address.state || '',
           pincode: data.address.pincode || '',
         }));
+        setErrors({}); // Clear all errors as we found a complete address
         setLookupDone(true);
       } else {
         setLookupDone(false);
@@ -122,6 +123,12 @@ export function CartModal({
           ...prev,
           city: data.city,
           state: data.state,
+        }));
+        // Clear city and state errors
+        setErrors(prev => ({
+          ...prev,
+          city: '',
+          state: ''
         }));
         setPincodeLookupDone(true);
       }

@@ -34,7 +34,7 @@ export function CartSummary({
         <span className="checkout-item-count">{totalCount} item{totalCount !== 1 ? 's' : ''}</span>
       </h2>
 
-      <div className="checkout-items flex-1 overflow-y-auto">
+      <div className="checkout-items flex-1 overflow-y-auto max-h-[40vh] md:max-h-none">
         {cart.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-[#9a938c]">
             <p className="text-4xl mb-4">🛍️</p>
@@ -42,7 +42,7 @@ export function CartSummary({
           </div>
         ) : (
           cart.map((item, i) => (
-            <div key={`${item.id}-${item.year}`} className="cart-item border-b border-[#f0f0f0] py-4 last:border-0">
+            <div key={`${item.id}-${item.year}`} className="cart-item border-b border-[#f0f0f0] py-3 md:py-4 last:border-0">
               <div className="flex-1">
                 <div className="font-semibold text-sm text-[#2E2A27]">{item.name}</div>
                 <div className="text-xs text-[#7a766f] mt-1">
@@ -76,7 +76,7 @@ export function CartSummary({
       </div>
 
       {cart.length > 0 && (
-        <div className="checkout-total mt-6 pt-6 border-t border-[#e0ddd9]">
+        <div className="checkout-total mt-4 md:mt-6 pt-4 md:pt-6 border-t border-[#e0ddd9]">
           <div className="flex justify-between items-center mb-6">
             <div>
               <div className="text-xs text-[#9a938c]">Order Total</div>

@@ -44,7 +44,7 @@ export function ShippingForm({
         {onBack && (
           <button
             onClick={onBack}
-            className="text-xs font-semibold text-[#5A7A56] flex md:hidden items-center gap-1 mt-[-2px]"
+            className="text-xs font-semibold text-[#5A7A56] flex md:hidden items-center gap-1"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
             Edit Items
@@ -180,7 +180,7 @@ export function ShippingForm({
         {errors.pincode && <span className="field-error-msg">{errors.pincode}</span>}
       </div>
 
-      <div className="mt-8 flex md:hidden flex-col">
+      <div className="mt-6 flex md:hidden flex-col">
         <button
           onClick={onSubmit}
           disabled={isPaymentLoading}
