@@ -41,6 +41,7 @@ export type CatalogueProps = {
 
 export type ShippingInfo = {
   fullName: string;
+  email: string;
   phone: string;
   addressLine1: string;
   addressLine2: string;

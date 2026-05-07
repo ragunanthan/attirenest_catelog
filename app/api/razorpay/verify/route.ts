@@ -54,6 +54,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 3. Send Email Notifications
+    try {
+      const { sendOrderNotification, sendCustomerConfirmation } = await import('@/lib/email');
+      // Send to Admin
+      await sendOrderNotification(order);
+      // Send to Customer
+      await sendCustomerConfirmation(order);
+    } catch (emailError) {
+      console.error('Email trigger failed:', emailError);
+    }
+
     return NextResponse.json({
       success: true,
       orderId: order.orderId,

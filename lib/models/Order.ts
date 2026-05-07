@@ -10,6 +10,7 @@ export interface IOrderItem {
 
 export interface IShippingAddress {
   fullName: string;
+  email: string;
   phone: string;
   addressLine1: string;
   addressLine2?: string;
@@ -54,6 +55,7 @@ const OrderSchema = new mongoose.Schema<IOrder>({
   ],
   shippingAddress: {
     fullName: { type: String },
+    email: { type: String },
     phone: { type: String },
     addressLine1: { type: String },
     addressLine2: { type: String },
