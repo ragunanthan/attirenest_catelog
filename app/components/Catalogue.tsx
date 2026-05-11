@@ -11,21 +11,31 @@ import { CatalogueNav } from './catalogue/CatalogueNav';
 import { ProductCard } from './catalogue/ProductCard';
 import { CartModal } from './catalogue/CartModal';
 import { CatalogueFooter } from './catalogue/CatalogueFooter';
+import { refreshCatalogue } from '@/lib/actions';
+import { useEffect } from 'react';
 
 export default function Catalogue({ initialCategories, initialProducts }: CatalogueProps) {
   const [categories] = useState(initialCategories);
-  const [products] = useState(initialProducts);
+  const [products, setProducts] = useState(initialProducts);
   const [isCartOpen, setIsCartOpen] = useState(false);
+
+  // Sync products state when server revalidates initialProducts prop
+  useEffect(() => {
+    setProducts(initialProducts);
+  }, [initialProducts]);
 
   // Custom Hooks
   const { cart, addToCart, changeQty, removeFromCart, clearCart, totalCount, totalPrice } = useCart();
   const { activeTab, sectionsRef } = useScrollSpy(categories, products);
-  const { selections, prices, animatingPrices, addedFlags, errorFlags, handleYearChange, setProductAdded, triggerError } = useProductState(products);
+  const { selections, prices, animatingPrices, addedFlags, errorFlags, handleYearChange, setProductAdded, triggerError, resetSelections } = useProductState(products);
   
-  const handlePaymentSuccess = useCallback(() => {
+  const handlePaymentSuccess = useCallback(async () => {
     clearCart();
+    resetSelections();
     setIsCartOpen(false);
-  }, [clearCart]);
+    // Trigger server-side revalidation to get latest stock
+    await refreshCatalogue();
+  }, [clearCart, resetSelections]);
 
   const { handlePayment, isLoading: isPaymentLoading, paymentSuccess, orderNumber } = useRazorpay(
     cart,

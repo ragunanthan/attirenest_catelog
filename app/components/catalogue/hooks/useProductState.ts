@@ -36,6 +36,15 @@ export function useProductState(initialProducts: Product[]) {
     setTimeout(() => setErrorFlags(prev => ({ ...prev, [productId]: false })), 1500);
   }, []);
 
+  const resetSelections = useCallback(() => {
+    setSelections({});
+    setAddedFlags({});
+    setErrorFlags({});
+    const initPrices: Record<number, number> = {};
+    initialProducts.forEach((p) => { initPrices[p.id] = p.basePrice; });
+    setPrices(initPrices);
+  }, [initialProducts]);
+
   return {
     selections,
     prices,
@@ -44,6 +53,7 @@ export function useProductState(initialProducts: Product[]) {
     errorFlags,
     handleYearChange,
     setProductAdded,
-    triggerError
+    triggerError,
+    resetSelections
   };
 }
