@@ -39,13 +39,24 @@ export function CatalogueHeader({ onOpenCart }: Props) {
         <p className="text-center mt-3 text-lg md:text-xl text-[#5a6d57] font-medium tracking-wide">Comfort. Culture. Childhood.</p>
 
         <div className="max-w-2xl mx-auto mt-6 text-center">
-          <p className="text-[15px] md:text-[17px] leading-relaxed text-[#4a4642]">
-            Based in Tamil Nadu, Attirenest blends GOTS-certified organic cotton, gender-neutral designs, and Indian festive charm for ages 0–14.
-          </p>
+          <div className="flex flex-col gap-3 mb-6">
+            <p className="text-xs md:text-sm uppercase tracking-[0.2em] font-semibold text-[#8a4b57]">
+              Cute comfy cool
+            </p>
+            <h3 className="text-lg md:text-xl font-semibold text-[#3d5a39]">
+              Attirenest - where little hearts bloom
+            </h3>
+            <p className="text-[15px] md:text-[17px] leading-relaxed text-[#4a4642]">
+              soft muslin & cotton outfits, ages 0–10. Designed by mom, made with sustainable, kid-friendly fabrics.
+            </p>
+            <p className="text-[13px] md:text-[15px] font-medium text-[#5a6d57] mt-1">
+              Made in Tamil Nadu • Designed by Mom • Experience Us in Bangalore
+            </p>
+          </div>
           <div className="mt-5 flex items-center justify-center gap-3 flex-wrap">
-            <span className="px-3 py-1.5 rounded-full bg-[#A8C3A5]/20 text-xs font-medium text-[#3d5a39]">GOTS Certified</span>
+            {/* <span className="px-3 py-1.5 rounded-full bg-[#A8C3A5]/20 text-xs font-medium text-[#3d5a39]">GOTS Certified</span> */}
             <span className="px-3 py-1.5 rounded-full bg-[#F7C8D0]/30 text-xs font-medium text-[#8a4b57]">Made in India</span>
-            <span className="px-3 py-1.5 rounded-full bg-[#E6D9F0]/60 text-xs font-medium text-[#5d4a7a]">0-14 Years</span>
+            <span className="px-3 py-1.5 rounded-full bg-[#E6D9F0]/60 text-xs font-medium text-[#5d4a7a]">0-10 Years</span>
           </div>
         </div>
       </div>
