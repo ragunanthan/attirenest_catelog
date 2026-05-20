@@ -14,7 +14,7 @@ export function CatalogueFooter() {
           </div>
         </div>
         <div className="text-center text-[12px] text-[#9a938c] mt-8">
-          © 2026 Attirenest. GOTS-certified organic cotton.
+          © 2026 Attirenest. Designed by Mom
         </div>
       </div>
     </footer>
