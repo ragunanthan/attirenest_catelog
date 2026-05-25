@@ -11,6 +11,7 @@ import { CatalogueNav } from './catalogue/CatalogueNav';
 import { ProductCard } from './catalogue/ProductCard';
 import { CartModal } from './catalogue/CartModal';
 import { CatalogueFooter } from './catalogue/CatalogueFooter';
+import { SizeChart } from './catalogue/SizeChart';
 import { refreshCatalogue } from '@/lib/actions';
 import { useEffect } from 'react';
 
@@ -152,6 +153,7 @@ export default function Catalogue({ initialCategories, initialProducts }: Catalo
         </div>
       </main>
 
+      <SizeChart />
       <CatalogueFooter />
 
       <CartModal 
