@@ -219,7 +219,8 @@ export default function AddProductForm({
               <button 
                 type="button"
                 onClick={() => removeExistingImage(idx)}
-                className="absolute top-1.5 right-1.5 bg-red-500/90 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600 shadow-md scale-90 group-hover:scale-100"
+                title="Delete image"
+                className="absolute top-1.5 right-1.5 bg-red-500 text-white p-1.5 rounded-full shadow-md hover:bg-red-600 transition-all z-10"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
@@ -235,7 +236,8 @@ export default function AddProductForm({
               <button 
                 type="button"
                 onClick={() => removeNewFile(fp.id)}
-                className="absolute top-1.5 right-1.5 bg-red-500/90 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600 shadow-md scale-90 group-hover:scale-100"
+                title="Remove image"
+                className="absolute top-1.5 right-1.5 bg-red-500 text-white p-1.5 rounded-full shadow-md hover:bg-red-600 transition-all z-10"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
