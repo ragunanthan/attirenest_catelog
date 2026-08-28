@@ -38,18 +38,10 @@ export default async function Home() {
   let categories = await Category.find({}).lean() as unknown as LeanCategory[];
   let products = await Product.find({}).sort({ id: 1 }).lean() as unknown as LeanProduct[];
   
-  // Seed database if empty or missing new categories
+  // Seed database only if completely empty on cold start
   if (categories.length === 0) {
     await Category.insertMany(MOCK_CATEGORIES);
-    categories = await Category.find({}).lean() as unknown as LeanCategory[];
-  } else {
-    const missingCategories = MOCK_CATEGORIES.filter(
-      (mock) => !categories.some((dbCat) => dbCat.id === mock.id)
-    );
-    if (missingCategories.length > 0) {
-      await Category.insertMany(missingCategories);
-      categories = await Category.find({}).lean() as unknown as LeanCategory[];
-    }
+    categories = (await Category.find({}).lean()) as unknown as LeanCategory[];
   }
   
   if (products.length === 0) {
