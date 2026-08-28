@@ -32,6 +32,7 @@ export type CartItem = {
   price: number;
   qty: number;
   maxStock: number;
+  image?: string;
 };
 
 export type CatalogueProps = {

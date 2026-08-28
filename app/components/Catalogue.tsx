@@ -67,7 +67,8 @@ export default function Catalogue({ initialCategories, initialProducts }: Catalo
       year,
       price,
       qty: 1,
-      maxStock
+      maxStock,
+      image: product.images?.[0],
     });
 
     if (openCart) {
