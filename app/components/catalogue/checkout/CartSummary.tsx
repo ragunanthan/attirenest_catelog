@@ -1,7 +1,7 @@
 'use client';
 
 import { CartItem } from '../types';
-import { ShoppingBag, Trash2, ArrowRight, ShieldCheck, Truck, Package } from 'lucide-react';
+import { ShoppingBag, Trash2, ShieldCheck, Truck, Package } from 'lucide-react';
 
 type Props = {
   cart: CartItem[];
@@ -20,12 +20,11 @@ export function CartSummary({
   totalCount,
   onChangeQty,
   onRemove,
-  onProceed,
   onPay,
   isPaymentLoading,
 }: Props) {
   return (
-    <div className="h-full flex flex-col justify-between p-6 sm:p-7 bg-[#FAF7F2]/60 md:bg-[#FAF7F2]/40 border-l border-[#E8E2D9]">
+    <div className="h-full flex flex-col justify-between p-5 sm:p-7 bg-[#FAF7F2]/60 md:bg-[#FAF7F2]/40 md:border-l md:border-[#E8E2D9]">
       {/* Header */}
       <div>
         <div className="flex items-center justify-between pb-4 border-b border-[#E8E2D9]">
@@ -46,7 +45,7 @@ export function CartSummary({
         </div>
 
         {/* Cart Items List */}
-        <div className="mt-4 space-y-3.5 max-h-[36vh] md:max-h-[38vh] overflow-y-auto pr-1">
+        <div className="mt-4 space-y-3.5 md:max-h-[38vh] md:overflow-y-auto pr-1">
           {cart.map((item, i) => (
             <div
               key={`${item.id}-${item.year}`}
@@ -159,18 +158,7 @@ export function CartSummary({
           </div>
         </div>
 
-        {/* Mobile: Proceed Button */}
-        {onProceed && (
-          <button
-            onClick={onProceed}
-            className="w-full py-3.5 rounded-2xl bg-[#5A7A56] hover:bg-[#486345] text-white font-bold text-sm shadow-md shadow-[#5A7A56]/25 flex md:hidden items-center justify-center gap-2 transition cursor-pointer"
-          >
-            <span>Proceed to Shipping</span>
-            <ArrowRight size={16} />
-          </button>
-        )}
-
-        {/* Desktop: Direct Pay Button if triggered from summary */}
+        {/* Desktop: Direct Pay Button */}
         {onPay && (
           <button
             onClick={onPay}
