@@ -1,77 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
-import dbConnect from '@/lib/mongodb';
-import Order from '@/lib/models/Order';
-import Product from '@/lib/models/Product';
+import { verifyPaymentSignature } from '@/lib/razorpay';
+import { fulfillOrder } from '@/lib/orderFulfillment';
 
 export async function POST(req: NextRequest) {
   try {
     const {
       razorpay_order_id,
       razorpay_payment_id,
-      razorpay_signature
+      razorpay_signature,
     } = await req.json();
 
-    const body = razorpay_order_id + "|" + razorpay_payment_id;
-
-    const expectedSignature = crypto
-      .createHmac("sha256", process.env.RAZOR_PAY_KEY_SECRET!)
-      .update(body.toString())
-      .digest("hex");
-
-    const isAuthentic = expectedSignature === razorpay_signature;
-
-    if (!isAuthentic) {
-      return NextResponse.json({ error: 'Invalid payment signature' }, { status: 400 });
-    }
-
-    await dbConnect();
-
-    // 1. Update order status
-    const order = await Order.findOneAndUpdate(
-      { orderId: razorpay_order_id },
-      {
-        status: 'paid',
-        paymentId: razorpay_payment_id
-      },
-      { new: true }
-    );
-
-    if (!order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
-    }
-
-    // 2. Decrease stock for each item
-    for (const item of order.items) {
-      await Product.updateOne(
-        {
-          id: item.productId,
-          'variants.year': item.year
-        },
-        {
-          $inc: { 'variants.$.stock': -item.qty }
-        }
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return NextResponse.json(
+        { error: 'Missing required payment verification parameters' },
+        { status: 400 }
       );
     }
 
-    // 3. Send Email Notifications
-    try {
-      const { sendOrderNotification, sendCustomerConfirmation } = await import('@/lib/email');
-      // Send to Admin
-      await sendOrderNotification(order);
-      // Send to Customer
-      await sendCustomerConfirmation(order);
-    } catch (emailError) {
-      console.error('Email trigger failed:', emailError);
+    // 1. Timing-safe cryptographic HMAC signature verification
+    const isAuthentic = verifyPaymentSignature({
+      orderId: razorpay_order_id,
+      paymentId: razorpay_payment_id,
+      signature: razorpay_signature,
+    });
+
+    if (!isAuthentic) {
+      console.warn(`[Razorpay Verify] Invalid signature for order ${razorpay_order_id}`);
+      return NextResponse.json({ error: 'Invalid payment signature' }, { status: 400 });
+    }
+
+    // 2. Idempotently fulfill order, deduct stock, and send notifications
+    const result = await fulfillOrder(razorpay_order_id, razorpay_payment_id);
+
+    if (!result.success || !result.order) {
+      return NextResponse.json(
+        { error: result.error || 'Failed to complete order processing' },
+        { status: 400 }
+      );
     }
 
     return NextResponse.json({
       success: true,
-      orderId: order.orderId,
-      orderNumber: order.orderNumber
+      orderId: result.order.orderId,
+      orderNumber: result.order.orderNumber,
+      alreadyFulfilled: result.alreadyFulfilled ?? false,
     });
   } catch (error) {
-    console.error('Payment verification failed:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('[Razorpay Verify Error]:', error);
+    return NextResponse.json({ error: 'Internal server error during verification' }, { status: 500 });
   }
 }

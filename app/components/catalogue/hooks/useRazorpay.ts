@@ -12,6 +12,31 @@ declare global {
 
 const RZP_KEY = process.env.NEXT_PUBLIC_RAZOR_PAY_KEY_ID;
 
+function loadRazorpayScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined') {
+      resolve(false);
+      return;
+    }
+    if (window.Razorpay) {
+      resolve(true);
+      return;
+    }
+    const existingScript = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+    if (existingScript) {
+      existingScript.addEventListener('load', () => resolve(true));
+      existingScript.addEventListener('error', () => resolve(false));
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
+
 export function useRazorpay(
   cart: CartItem[],
   totalPrice: number,
@@ -22,24 +47,25 @@ export function useRazorpay(
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
 
-  // Load Razorpay script on mount
+  // Preload Razorpay script on mount
   useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-    document.body.appendChild(script);
-    return () => { document.body.removeChild(script); };
+    loadRazorpayScript();
   }, []);
 
   const handlePayment = useCallback(async (shippingInfo: ShippingInfo) => {
     if (cart.length === 0) return;
-    if (!window.Razorpay) {
-      alert('Payment gateway not loaded. Please refresh the page.');
+
+    setIsLoading(true);
+
+    const scriptLoaded = await loadRazorpayScript();
+    if (!scriptLoaded || !window.Razorpay) {
+      alert('Payment gateway could not be loaded. Please check your internet connection or try again.');
+      setIsLoading(false);
       return;
     }
 
-    setIsLoading(true);
     try {
+      // 1. Create order on server (server calculates authoritative price and checks stock)
       const res = await fetch('/api/razorpay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -49,19 +75,27 @@ export function useRazorpay(
           shippingAddress: shippingInfo,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Failed to create order');
 
-      const rzp = new window.Razorpay({
-        key: RZP_KEY,
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error ?? 'Failed to initialize payment order');
+      }
+
+      // 2. Configure Razorpay checkout options
+      const options = {
+        key: data.key || RZP_KEY,
         amount: data.amount,
-        currency: data.currency,
-        name: 'Attirenest',
+        currency: data.currency || 'INR',
+        name: 'AttireNest',
         description: `Order for ${totalCount} item(s)`,
         order_id: data.orderId,
         prefill: {
           name: shippingInfo.fullName,
+          email: shippingInfo.email,
           contact: shippingInfo.phone,
+        },
+        theme: {
+          color: '#5A7A56',
         },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         handler: async (response: any) => {
@@ -76,58 +110,62 @@ export function useRazorpay(
               }),
             });
 
-            if (verifyRes.ok) {
-              const verifyData = await verifyRes.json();
-              setOrderNumber(verifyData.orderNumber);
+            const verifyData = await verifyRes.json();
+
+            if (verifyRes.ok && verifyData.success) {
+              setOrderNumber(verifyData.orderNumber || data.orderNumber);
               onSuccess();
               setPaymentSuccess(true);
               setTimeout(() => {
                 setPaymentSuccess(false);
                 setOrderNumber(null);
-              }, 10000); // Show for 10 seconds
+              }, 10000); // Display success banner for 10 seconds
             } else {
-              const verifyData = await verifyRes.json();
-              alert(verifyData.error || 'Payment verification failed');
+              alert(verifyData.error || 'Payment verification failed. Please contact support.');
             }
           } catch (err) {
-            console.error('Verification error:', err);
-            alert('Error verifying payment');
+            console.error('[Razorpay Verify Client Error]:', err);
+            alert('An error occurred while verifying payment. If amount was debited, your order will be confirmed shortly.');
           } finally {
             setIsLoading(false);
           }
         },
-        theme: { color: '#5A7A56' },
-        modal: { 
-          ondismiss: async () => {
+        modal: {
+          ondismiss: () => {
             setIsLoading(false);
-            // Only update if not already success or failed
-            if (!paymentSuccess) {
-              await fetch('/api/razorpay/cancel', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderId: data.orderId, status: 'cancelled' }),
-              });
-            }
-          } 
+            // Do not eagerly cancel order here to avoid cancelling when user switches to external UPI app
+          },
         },
-      });
+      };
 
+      const rzp = new window.Razorpay(options);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       rzp.on('payment.failed', async (response: any) => {
-        console.error('Payment failed:', response.error);
-        alert('Payment failed: ' + (response.error.description || 'Please try again.'));
+        console.error('[Razorpay Payment Failed]:', response.error);
+        const errorDesc = response.error?.description || 'Payment was not completed. Please try again.';
+        alert(`Payment failed: ${errorDesc}`);
         setIsLoading(false);
-        
-        await fetch('/api/razorpay/cancel', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orderId: data.orderId, status: 'failed' }),
-        });
+
+        try {
+          await fetch('/api/razorpay/cancel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId: data.orderId,
+              status: 'failed',
+            }),
+          });
+        } catch (e) {
+          console.error('[Cancel Notification Failed]:', e);
+        }
       });
 
       rzp.open();
-    } catch (err) {
-      console.error('[Razorpay]', err);
-      alert('Could not initiate payment. Please try again.');
+    } catch (err: unknown) {
+      console.error('[Razorpay Checkout Error]:', err);
+      const msg = err instanceof Error ? err.message : 'Could not initiate payment. Please try again.';
+      alert(msg);
       setIsLoading(false);
     }
   }, [cart, totalPrice, totalCount, onSuccess]);

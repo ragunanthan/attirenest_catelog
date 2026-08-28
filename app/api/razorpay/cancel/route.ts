@@ -12,13 +12,20 @@ export async function POST(req: NextRequest) {
 
     await dbConnect();
 
+    // Only update if currently in 'pending' status. Never overwrite 'paid' orders.
     const order = await Order.findOneAndUpdate(
-      { orderId: orderId },
+      { orderId: orderId, status: 'pending' },
       { status: status },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!order) {
+      const existing = await Order.findOne({ orderId: orderId });
+      if (existing) {
+        // Order exists and is already paid or in terminal state
+        console.log(`[Order Cancel Guard] Order ${orderId} is in "${existing.status}" state; cancel action ignored.`);
+        return NextResponse.json({ success: true, status: existing.status, ignored: true });
+      }
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
