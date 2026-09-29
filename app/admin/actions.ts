@@ -6,11 +6,25 @@ import dbConnect from '@/lib/mongodb';
 import Product from '@/lib/models/Product';
 import Category from '@/lib/models/Category';
 import { revalidatePath } from 'next/cache';
-import { put } from '@vercel/blob';
+import { put, del } from '@vercel/blob';
 
 export interface ActionResponse {
   error?: string;
   success?: string;
+}
+
+export async function safeDeleteBlob(urls: string | string[]) {
+  const urlList = (Array.isArray(urls) ? urls : [urls]).filter(Boolean);
+  const blobUrls = urlList.filter(
+    (u) => typeof u === 'string' && u.includes('blob.vercel-storage.com')
+  );
+  if (blobUrls.length === 0) return;
+
+  try {
+    await del(blobUrls);
+  } catch (error) {
+    console.warn('safeDeleteBlob warning: Failed to delete blobs from Vercel Blob storage:', error);
+  }
 }
 
 function slugify(text: string): string {
@@ -174,6 +188,18 @@ export async function updateProductAction(
     }
 
     await dbConnect();
+
+    // Clean up any removed images from Vercel Blob storage
+    const prevProduct = await Product.findOne({ id });
+    if (prevProduct?.images && Array.isArray(prevProduct.images)) {
+      const removedImages = prevProduct.images.filter(
+        (img: string) => !finalImages.includes(img)
+      );
+      if (removedImages.length > 0) {
+        await safeDeleteBlob(removedImages);
+      }
+    }
+
     await Product.findOneAndUpdate(
       { id },
       {
@@ -211,6 +237,10 @@ export async function deleteProductAction(id: number): Promise<ActionResponse> {
 
   try {
     await dbConnect();
+    const product = await Product.findOne({ id });
+    if (product?.images && Array.isArray(product.images) && product.images.length > 0) {
+      await safeDeleteBlob(product.images);
+    }
     await Product.findOneAndDelete({ id });
 
     revalidatePath('/');
@@ -222,6 +252,153 @@ export async function deleteProductAction(id: number): Promise<ActionResponse> {
   } catch (error) {
     console.error('Error deleting product:', error);
     return { error: 'Failed to delete product.' };
+  }
+}
+
+export async function deleteProductImageAction(
+  productId: number,
+  imageUrl: string
+): Promise<ActionResponse & { remainingImages?: string[] }> {
+  const session = await getSession();
+  if (!session) return { error: 'Unauthorized: Please log in again.' };
+
+  if (!productId || !imageUrl) {
+    return { error: 'Product ID and Image URL are required.' };
+  }
+
+  try {
+    await dbConnect();
+    const product = await Product.findOne({ id: productId });
+    if (!product) {
+      return { error: 'Product not found.' };
+    }
+
+    if (!product.images || product.images.length <= 1) {
+      return {
+        error: 'Cannot delete the only photo. A product must have at least one image. Please upload a replacement before deleting this one.',
+      };
+    }
+
+    const updatedImages = product.images.filter((img: string) => img !== imageUrl);
+
+    // Clean up from Vercel blob storage
+    await safeDeleteBlob(imageUrl);
+
+    // Update in database
+    await Product.findOneAndUpdate(
+      { id: productId },
+      { images: updatedImages }
+    );
+
+    revalidatePath('/');
+    revalidatePath('/admin/products');
+    revalidatePath(`/admin/products/${productId}/edit`);
+    revalidatePath('/admin/categories');
+    revalidatePath('/admin/dashboard');
+
+    return { success: 'Image deleted successfully!', remainingImages: updatedImages };
+  } catch (error: unknown) {
+    console.error('Error deleting product image:', error);
+    const msg = error instanceof Error ? error.message : 'Unknown error occurred';
+    return { error: `Failed to delete image: ${msg}` };
+  }
+}
+
+export async function setProductCoverImageAction(
+  productId: number,
+  imageUrl: string
+): Promise<ActionResponse & { updatedImages?: string[] }> {
+  const session = await getSession();
+  if (!session) return { error: 'Unauthorized: Please log in again.' };
+
+  if (!productId || !imageUrl) {
+    return { error: 'Product ID and Image URL are required.' };
+  }
+
+  try {
+    await dbConnect();
+    const product = await Product.findOne({ id: productId });
+    if (!product) return { error: 'Product not found.' };
+
+    const currentImages = product.images || [];
+    if (!currentImages.includes(imageUrl)) {
+      return { error: 'Image not found in this product.' };
+    }
+
+    // Move imageUrl to the primary index (0)
+    const updatedImages = [
+      imageUrl,
+      ...currentImages.filter((img: string) => img !== imageUrl),
+    ];
+
+    await Product.findOneAndUpdate(
+      { id: productId },
+      { images: updatedImages }
+    );
+
+    revalidatePath('/');
+    revalidatePath('/admin/products');
+    revalidatePath(`/admin/products/${productId}/edit`);
+    revalidatePath('/admin/categories');
+    revalidatePath('/admin/dashboard');
+
+    return { success: 'Cover image updated successfully!', updatedImages };
+  } catch (error: unknown) {
+    console.error('Error updating cover image:', error);
+    const msg = error instanceof Error ? error.message : 'Unknown error occurred';
+    return { error: `Failed to update cover image: ${msg}` };
+  }
+}
+
+export async function uploadProductImagesAction(
+  productId: number,
+  formData: FormData
+): Promise<ActionResponse & { updatedImages?: string[] }> {
+  const session = await getSession();
+  if (!session) return { error: 'Unauthorized: Please log in again.' };
+
+  const imageFiles = formData.getAll('images') as File[];
+  if (!imageFiles || imageFiles.length === 0) {
+    return { error: 'No files provided.' };
+  }
+
+  try {
+    await dbConnect();
+    const product = await Product.findOne({ id: productId });
+    if (!product) return { error: 'Product not found.' };
+
+    const newUrls: string[] = [];
+    for (const file of imageFiles) {
+      if (file && file.size > 0) {
+        const blob = await put(`products/${Date.now()}-${file.name}`, file, {
+          access: 'public',
+          addRandomSuffix: true,
+        });
+        newUrls.push(blob.url);
+      }
+    }
+
+    if (newUrls.length === 0) {
+      return { error: 'No valid images were uploaded.' };
+    }
+
+    const updatedImages = [...(product.images || []), ...newUrls];
+    await Product.findOneAndUpdate(
+      { id: productId },
+      { images: updatedImages }
+    );
+
+    revalidatePath('/');
+    revalidatePath('/admin/products');
+    revalidatePath(`/admin/products/${productId}/edit`);
+    revalidatePath('/admin/categories');
+    revalidatePath('/admin/dashboard');
+
+    return { success: 'Photos uploaded successfully!', updatedImages };
+  } catch (error: unknown) {
+    console.error('Error uploading product images:', error);
+    const msg = error instanceof Error ? error.message : 'Unknown error occurred';
+    return { error: `Failed to upload images: ${msg}` };
   }
 }
 

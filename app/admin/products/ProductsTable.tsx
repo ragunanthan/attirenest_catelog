@@ -12,7 +12,9 @@ import {
   AlertTriangle,
   CheckCircle2,
   XCircle,
+  ImageIcon,
 } from 'lucide-react';
+import { ProductPhotosModal } from '../components/ProductPhotosModal';
 
 export interface ProductItem {
   id: number;
@@ -43,17 +45,41 @@ interface ProductsTableProps {
 }
 
 export function ProductsTable({ products, categories }: ProductsTableProps) {
+  const [prevProducts, setPrevProducts] = useState(products);
+  const [productList, setProductList] = useState<ProductItem[]>(products);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [stockFilter, setStockFilter] = useState<'all' | 'in_stock' | 'low_stock' | 'out_of_stock'>('all');
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [photoModalProduct, setPhotoModalProduct] = useState<{
+    id: number;
+    name: string;
+    images: string[];
+  } | null>(null);
+
+  if (products !== prevProducts) {
+    setPrevProducts(products);
+    setProductList(products);
+  }
 
   const categoryMap = useMemo(() => {
     return new Map(categories.map((c) => [c.id, c.name]));
   }, [categories]);
 
+  const handleImagesUpdated = (productId: number, newImages: string[]) => {
+    setProductList((prev) =>
+      prev.map((p) => (p.id === productId ? { ...p, images: newImages } : p))
+    );
+    if (photoModalProduct && photoModalProduct.id === productId) {
+      setPhotoModalProduct({
+        ...photoModalProduct,
+        images: newImages,
+      });
+    }
+  };
+
   const filteredProducts = useMemo(() => {
-    return products.filter((p) => {
+    return productList.filter((p) => {
       // Search
       const matchesSearch =
         searchQuery.trim() === '' ||
@@ -78,7 +104,7 @@ export function ProductsTable({ products, categories }: ProductsTableProps) {
 
       return matchesSearch && matchesCategory && matchesStock;
     });
-  }, [products, searchQuery, selectedCategory, stockFilter]);
+  }, [productList, searchQuery, selectedCategory, stockFilter]);
 
   const handleDelete = async (id: number, name: string) => {
     if (confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) {
@@ -210,13 +236,24 @@ export function ProductsTable({ products, categories }: ProductsTableProps) {
                       {/* Product Column */}
                       <td className="py-4 px-5">
                         <div className="flex items-center gap-3.5">
-                          <div className="w-12 h-14 rounded-xl overflow-hidden bg-[#F3EFE6] shrink-0 border border-[#E8E2D9] relative">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPhotoModalProduct({
+                                id: p.id,
+                                name: p.name,
+                                images: p.images || [],
+                              })
+                            }
+                            className="w-12 h-14 rounded-xl overflow-hidden bg-[#F3EFE6] shrink-0 border border-[#E8E2D9] hover:border-[#5A7A56] relative cursor-pointer group/thumb transition shadow-2xs text-left"
+                            title="Click to view and manage photos"
+                          >
                             {p.images?.[0] ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
                                 src={p.images[0]}
                                 alt={p.name}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover group-hover/thumb:scale-105 transition"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-[#A39B8F]">
@@ -228,7 +265,10 @@ export function ProductsTable({ products, categories }: ProductsTableProps) {
                                 +{p.images.length - 1}
                               </span>
                             )}
-                          </div>
+                            <div className="absolute inset-0 bg-[#5A7A56]/40 opacity-0 group-hover/thumb:opacity-100 transition flex items-center justify-center text-white">
+                              <ImageIcon size={14} />
+                            </div>
+                          </button>
                           <div className="min-w-0">
                             <div className="font-bold text-sm text-[#2E2A27] flex items-center gap-2">
                               <span>{p.name}</span>
@@ -310,6 +350,21 @@ export function ProductsTable({ products, categories }: ProductsTableProps) {
                       {/* Action Buttons */}
                       <td className="py-4 px-5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPhotoModalProduct({
+                                id: p.id,
+                                name: p.name,
+                                images: p.images || [],
+                              })
+                            }
+                            className="p-2 rounded-xl text-[#7A7367] hover:text-[#5A7A56] hover:bg-[#5A7A56]/15 transition cursor-pointer"
+                            title={`Manage photos (${p.images?.length || 0})`}
+                          >
+                            <ImageIcon size={16} />
+                          </button>
+
                           <Link
                             href={`/admin/products/${p.id}/edit`}
                             className="p-2 rounded-xl text-[#5A7A56] hover:bg-[#5A7A56]/15 transition"
@@ -340,6 +395,14 @@ export function ProductsTable({ products, categories }: ProductsTableProps) {
           </table>
         </div>
       </div>
+
+      {/* Product Photos Management Modal */}
+      <ProductPhotosModal
+        isOpen={!!photoModalProduct}
+        onClose={() => setPhotoModalProduct(null)}
+        product={photoModalProduct}
+        onImagesUpdated={handleImagesUpdated}
+      />
     </div>
   );
 }

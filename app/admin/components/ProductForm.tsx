@@ -13,7 +13,9 @@ import {
   CheckCircle2,
   AlertCircle,
   ImageIcon,
+  Star,
 } from 'lucide-react';
+import { ProductPhotosModal } from './ProductPhotosModal';
 
 export interface CategoryOption {
   id: string;
@@ -87,6 +89,7 @@ export function ProductForm({ categories, initialData, isEditing = false }: Prod
   const [existingImages, setExistingImages] = useState<string[]>(initialData?.images || []);
   const [newFiles, setNewFiles] = useState<FilePreview[]>([]);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
 
   const MAX_FILE_SIZE = 4.5 * 1024 * 1024; // 4.5MB
   const MAX_TOTAL_SIZE = 20 * 1024 * 1024; // 20MB
@@ -173,14 +176,39 @@ export function ProductForm({ categories, initialData, isEditing = false }: Prod
   };
 
   const removeExistingImage = (index: number) => {
+    if (existingImages.length + newFiles.length <= 1) {
+      setLocalError('A product must have at least one photo. Please add another photo before deleting this one.');
+      return;
+    }
     setExistingImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const removeNewFile = (id: string) => {
+    if (existingImages.length + newFiles.length <= 1) {
+      setLocalError('A product must have at least one photo. Please add another photo before removing this one.');
+      return;
+    }
     setNewFiles((prev) => {
       const target = prev.find((p) => p.id === id);
       if (target) URL.revokeObjectURL(target.url);
       return prev.filter((p) => p.id !== id);
+    });
+  };
+
+  const makeExistingCover = (index: number) => {
+    setExistingImages((prev) => {
+      const selected = prev[index];
+      const remaining = prev.filter((_, i) => i !== index);
+      return [selected, ...remaining];
+    });
+  };
+
+  const makeNewFileCover = (id: string) => {
+    setNewFiles((prev) => {
+      const selected = prev.find((p) => p.id === id);
+      if (!selected) return prev;
+      const remaining = prev.filter((p) => p.id !== id);
+      return [selected, ...remaining];
     });
   };
 
@@ -541,15 +569,29 @@ export function ProductForm({ categories, initialData, isEditing = false }: Prod
         <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-8">
           {/* Media Card */}
           <div className="bg-white rounded-3xl p-6 border border-[#E8E2D9] shadow-xs space-y-4">
-            <h2
-              className="text-lg font-bold text-[#2E2A27] flex items-center justify-between"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              <span>Product Photos</span>
-              <span className="text-xs font-normal text-[#8C8479]">
-                {allPreviewImages.length} attached
-              </span>
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2
+                className="text-lg font-bold text-[#2E2A27] flex items-center gap-2"
+                style={{ fontFamily: "'Fraunces', serif" }}
+              >
+                <span>Product Photos</span>
+                <span className="text-xs font-normal text-[#8C8479]">
+                  ({allPreviewImages.length} attached)
+                </span>
+              </h2>
+
+              {isEditing && initialData?.id && (
+                <button
+                  type="button"
+                  onClick={() => setIsPhotoModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FAF7F2] hover:bg-[#E8E2D9] text-[#5A7A56] hover:text-[#486345] text-xs font-bold border border-[#DCD6CC] transition cursor-pointer"
+                  title="Open dedicated photo manager"
+                >
+                  <ImageIcon size={14} />
+                  <span>Photo Manager</span>
+                </button>
+              )}
+            </div>
 
             {/* Upload Area */}
             <label className="relative border-2 border-dashed border-[#5A7A56]/40 hover:border-[#5A7A56] bg-[#5A7A56]/5 hover:bg-[#5A7A56]/10 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 text-center cursor-pointer transition">
@@ -574,50 +616,80 @@ export function ProductForm({ categories, initialData, isEditing = false }: Prod
             {allPreviewImages.length > 0 && (
               <div className="grid grid-cols-3 gap-2.5 pt-2">
                 {/* Existing Images */}
-                {existingImages.map((url, idx) => (
-                  <div
-                    key={`exist-${idx}`}
-                    className="relative aspect-square rounded-xl overflow-hidden border border-[#DCD6CC] group shadow-2xs bg-[#F5F2EB]"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt="Product image" className="w-full h-full object-cover" />
-                    {idx === 0 && (
-                      <span className="absolute top-1 left-1 bg-[#5A7A56] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-md shadow-xs">
-                        COVER
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => removeExistingImage(idx)}
-                      className="absolute top-1 right-1 bg-red-500/90 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition shadow-xs"
-                      title="Delete photo"
+                {existingImages.map((url, idx) => {
+                  const isCover = idx === 0;
+                  return (
+                    <div
+                      key={`exist-${idx}`}
+                      className={`relative aspect-square rounded-xl overflow-hidden border group shadow-2xs bg-[#F5F2EB] ${
+                        isCover ? 'border-[#5A7A56] ring-2 ring-[#5A7A56]/20' : 'border-[#DCD6CC]'
+                      }`}
                     >
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
-                ))}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt="Product image" className="w-full h-full object-cover" />
+                      {isCover ? (
+                        <span className="absolute top-1.5 left-1.5 bg-[#5A7A56] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-md shadow-xs flex items-center gap-1">
+                          <Star size={9} className="fill-current" /> COVER
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => makeExistingCover(idx)}
+                          className="absolute bottom-1.5 left-1.5 bg-black/60 hover:bg-[#5A7A56] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow-xs flex items-center gap-1 transition cursor-pointer"
+                          title="Set as cover image"
+                        >
+                          <Star size={9} />
+                          <span>Cover</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeExistingImage(idx)}
+                        className="absolute top-1.5 right-1.5 bg-red-600/90 hover:bg-red-700 text-white p-1.5 rounded-full shadow-md transition flex items-center justify-center cursor-pointer"
+                        title="Delete photo"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  );
+                })}
 
                 {/* New Files */}
-                {newFiles.map((fp) => (
-                  <div
-                    key={fp.id}
-                    className="relative aspect-square rounded-xl overflow-hidden border-2 border-dashed border-[#5A7A56]/50 group shadow-2xs bg-[#F5F2EB]"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={fp.url} alt="New upload" className="w-full h-full object-cover" />
-                    <span className="absolute bottom-1 left-1 bg-emerald-600 text-white text-[7px] font-bold px-1 py-0.2 rounded shadow-xs">
-                      NEW
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => removeNewFile(fp.id)}
-                      className="absolute top-1 right-1 bg-red-500/90 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition shadow-xs"
-                      title="Remove photo"
+                {newFiles.map((fp, newIdx) => {
+                  const isFirstNew = existingImages.length === 0 && newIdx === 0;
+                  return (
+                    <div
+                      key={fp.id}
+                      className={`relative aspect-square rounded-xl overflow-hidden border-2 border-dashed group shadow-2xs bg-[#F5F2EB] ${
+                        isFirstNew ? 'border-[#5A7A56]' : 'border-[#5A7A56]/50'
+                      }`}
                     >
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
-                ))}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={fp.url} alt="New upload" className="w-full h-full object-cover" />
+                      <span className="absolute bottom-1.5 left-1.5 bg-emerald-600 text-white text-[7px] font-bold px-1.5 py-0.5 rounded shadow-xs">
+                        NEW
+                      </span>
+                      {existingImages.length === 0 && !isFirstNew && (
+                        <button
+                          type="button"
+                          onClick={() => makeNewFileCover(fp.id)}
+                          className="absolute bottom-1.5 right-1.5 bg-black/60 hover:bg-[#5A7A56] text-white text-[8px] font-bold px-1.5 py-0.5 rounded shadow-xs flex items-center gap-1 transition cursor-pointer"
+                          title="Set as cover photo"
+                        >
+                          <Star size={8} /> Cover
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeNewFile(fp.id)}
+                        className="absolute top-1.5 right-1.5 bg-red-600/90 hover:bg-red-700 text-white p-1.5 rounded-full shadow-md transition flex items-center justify-center cursor-pointer"
+                        title="Remove photo"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -702,6 +774,22 @@ export function ProductForm({ categories, initialData, isEditing = false }: Prod
           </div>
         </div>
       </div>
+
+      {/* Dedicated Photo Manager Modal for Existing Products */}
+      {isEditing && initialData?.id && (
+        <ProductPhotosModal
+          isOpen={isPhotoModalOpen}
+          onClose={() => setIsPhotoModalOpen(false)}
+          product={{
+            id: initialData.id,
+            name: name || initialData.name,
+            images: existingImages,
+          }}
+          onImagesUpdated={(_id, newImages) => {
+            setExistingImages(newImages);
+          }}
+        />
+      )}
     </form>
   );
 }
