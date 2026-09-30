@@ -465,7 +465,7 @@ export function ProductPhotosModal({
         {/* Modal Footer */}
         <div className="px-6 py-4 border-t border-[#E8E2D9] bg-[#FAF7F2] flex items-center justify-between text-xs text-[#7A7367]">
           <span>
-            💡 Deleting an image permanently removes it from Vercel Blob storage and the catalogue.
+            💡 Deleting an image permanently removes it from Cloudflare R2 storage and the catalogue.
           </span>
           <button
             type="button"

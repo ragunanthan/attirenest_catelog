@@ -6,26 +6,14 @@ import dbConnect from '@/lib/mongodb';
 import Product from '@/lib/models/Product';
 import Category from '@/lib/models/Category';
 import { revalidatePath } from 'next/cache';
-import { put, del } from '@vercel/blob';
+import { uploadToR2, safeDeleteStorageImage } from '@/lib/r2';
 
 export interface ActionResponse {
   error?: string;
   success?: string;
 }
 
-export async function safeDeleteBlob(urls: string | string[]) {
-  const urlList = (Array.isArray(urls) ? urls : [urls]).filter(Boolean);
-  const blobUrls = urlList.filter(
-    (u) => typeof u === 'string' && u.includes('blob.vercel-storage.com')
-  );
-  if (blobUrls.length === 0) return;
-
-  try {
-    await del(blobUrls);
-  } catch (error) {
-    console.warn('safeDeleteBlob warning: Failed to delete blobs from Vercel Blob storage:', error);
-  }
-}
+export const safeDeleteBlob = safeDeleteStorageImage;
 
 function slugify(text: string): string {
   return text
@@ -94,11 +82,8 @@ export async function addProductAction(
   try {
     for (const file of imageFiles) {
       if (file && file.size > 0) {
-        const blob = await put(`products/${Date.now()}-${file.name}`, file, {
-          access: 'public',
-          addRandomSuffix: true,
-        });
-        imageUrls.push(blob.url);
+        const url = await uploadToR2(file, { folder: 'products' });
+        imageUrls.push(url);
       }
     }
 
@@ -173,11 +158,8 @@ export async function updateProductAction(
     const newImageUrls: string[] = [];
     for (const file of newImageFiles) {
       if (file && file.size > 0) {
-        const blob = await put(`products/${Date.now()}-${file.name}`, file, {
-          access: 'public',
-          addRandomSuffix: true,
-        });
-        newImageUrls.push(blob.url);
+        const url = await uploadToR2(file, { folder: 'products' });
+        newImageUrls.push(url);
       }
     }
 
@@ -370,11 +352,8 @@ export async function uploadProductImagesAction(
     const newUrls: string[] = [];
     for (const file of imageFiles) {
       if (file && file.size > 0) {
-        const blob = await put(`products/${Date.now()}-${file.name}`, file, {
-          access: 'public',
-          addRandomSuffix: true,
-        });
-        newUrls.push(blob.url);
+        const url = await uploadToR2(file, { folder: 'products' });
+        newUrls.push(url);
       }
     }
 
