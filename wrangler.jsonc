@@ -1,0 +1,9 @@
+{
+  "name": "attirenest-catelog",
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "attirenest-catelog"   // ← must match the Worker name above
+    }
+  ]
+}
