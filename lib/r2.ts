@@ -4,6 +4,8 @@ import {
   DeleteObjectCommand,
   DeleteObjectsCommand,
 } from '@aws-sdk/client-s3';
+import sharp from 'sharp';
+import path from 'path';
 
 /**
  * Returns an instantiated AWS S3 Client targeting Cloudflare R2
@@ -51,14 +53,119 @@ export function getR2Config() {
   };
 }
 
+export interface ImageCompressionOptions {
+  /**
+   * Whether to enable compression (defaults to true)
+   */
+  enabled?: boolean;
+  /**
+   * Maximum image width in pixels. Downscaled if larger, never upscaled. Defaults to 1920.
+   */
+  maxWidth?: number;
+  /**
+   * Maximum image height in pixels. Defaults to 1920.
+   */
+  maxHeight?: number;
+  /**
+   * Compression quality from 1 to 100. Defaults to 82.
+   */
+  quality?: number;
+  /**
+   * Output format. Defaults to 'webp' for optimal web performance.
+   */
+  format?: 'webp' | 'jpeg' | 'png' | 'original';
+}
+
 export interface UploadR2Options {
   folder?: string;
   customFilename?: string;
   contentType?: string;
+  compression?: boolean | ImageCompressionOptions;
+}
+
+/**
+ * Compresses an image buffer using sharp with automatic orientation,
+ * smart max-dimension resizing, and modern WebP / JPEG encoding.
+ */
+export async function compressImage(
+  buffer: Buffer,
+  mimeType: string,
+  options?: boolean | ImageCompressionOptions
+): Promise<{ buffer: Buffer; contentType: string; extension: string }> {
+  // If compression is explicitly turned off
+  if (options === false) {
+    return { buffer, contentType: mimeType, extension: '' };
+  }
+
+  const opts: ImageCompressionOptions =
+    typeof options === 'object' && options !== null ? options : {};
+
+  if (opts.enabled === false) {
+    return { buffer, contentType: mimeType, extension: '' };
+  }
+
+  // Skip compression for SVGs and non-image files
+  if (!mimeType.startsWith('image/') || mimeType === 'image/svg+xml') {
+    return { buffer, contentType: mimeType, extension: '' };
+  }
+
+  try {
+    const maxWidth = opts.maxWidth || 1920;
+    const maxHeight = opts.maxHeight || 1920;
+    const quality = opts.quality || 82;
+    const format = opts.format || 'webp';
+
+    // Auto-rotate based on EXIF tag (critical for mobile camera uploads)
+    let pipeline = sharp(buffer, { failOn: 'none' }).rotate();
+
+    // Resize within bounds without enlarging smaller images
+    pipeline = pipeline.resize({
+      width: maxWidth,
+      height: maxHeight,
+      fit: 'inside',
+      withoutEnlargement: true,
+    });
+
+    if (format === 'webp') {
+      const outputBuffer = await pipeline.webp({ quality, effort: 4 }).toBuffer();
+      return {
+        buffer: outputBuffer,
+        contentType: 'image/webp',
+        extension: '.webp',
+      };
+    } else if (format === 'jpeg') {
+      const outputBuffer = await pipeline.jpeg({ quality, mozjpeg: true }).toBuffer();
+      return {
+        buffer: outputBuffer,
+        contentType: 'image/jpeg',
+        extension: '.jpg',
+      };
+    } else if (format === 'png') {
+      const outputBuffer = await pipeline.png({ quality, compressionLevel: 8 }).toBuffer();
+      return {
+        buffer: outputBuffer,
+        contentType: 'image/png',
+        extension: '.png',
+      };
+    } else {
+      // Keep original format where possible, but compressed
+      const metadata = await pipeline.metadata();
+      if (metadata.format === 'png') {
+        const outputBuffer = await pipeline.png({ quality, compressionLevel: 8 }).toBuffer();
+        return { buffer: outputBuffer, contentType: 'image/png', extension: '.png' };
+      }
+      const outputBuffer = await pipeline.jpeg({ quality, mozjpeg: true }).toBuffer();
+      return { buffer: outputBuffer, contentType: 'image/jpeg', extension: '.jpg' };
+    }
+  } catch (error) {
+    console.warn('Image compression skipped due to error, falling back to original buffer:', error);
+    return { buffer, contentType: mimeType, extension: '' };
+  }
 }
 
 /**
  * Uploads a file (File, Blob, or Buffer) to Cloudflare R2 and returns its public CDN URL.
+ * Automatically applies image compression & WebP conversion unless disabled.
  */
 export async function uploadToR2(
   file: File | Blob | Buffer,
@@ -88,10 +195,22 @@ export async function uploadToR2(
     throw new Error('Unsupported file payload provided to uploadToR2');
   }
 
-  // Sanitize filename to avoid weird URL characters
+  // Compress image (defaults to enabled -> WebP, 1920px max, 82% quality)
+  const compressed = await compressImage(buffer, mimeType, options?.compression);
+  buffer = compressed.buffer;
+  mimeType = compressed.contentType;
+
+  // Sanitize filename and apply new extension if converted
   const cleanName = originalName.replace(/[^a-zA-Z0-9.-]/g, '_');
+  let finalName = cleanName;
+  if (compressed.extension) {
+    const ext = path.extname(cleanName);
+    const baseName = ext ? cleanName.slice(0, -ext.length) : cleanName;
+    finalName = `${baseName}${compressed.extension}`;
+  }
+
   const randomSuffix = Math.random().toString(36).substring(2, 9);
-  const key = `${folder}/${Date.now()}-${randomSuffix}-${cleanName}`;
+  const key = `${folder}/${Date.now()}-${randomSuffix}-${finalName}`;
 
   await s3.send(
     new PutObjectCommand({

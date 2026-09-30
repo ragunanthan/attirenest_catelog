@@ -62,6 +62,8 @@ const s3Client = new S3Client({
   },
 });
 
+import sharp from 'sharp';
+
 function getMimeType(filePathOrUrl) {
   const ext = path.extname(filePathOrUrl.split('?')[0]).toLowerCase();
   switch (ext) {
@@ -76,17 +78,41 @@ function getMimeType(filePathOrUrl) {
   }
 }
 
+async function compressImageBuffer(buffer, mimeType) {
+  if (!mimeType.startsWith('image/') || mimeType === 'image/svg+xml') {
+    return { buffer, mimeType, ext: '' };
+  }
+  try {
+    const compressed = await sharp(buffer, { failOn: 'none' })
+      .rotate()
+      .resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 82, effort: 4 })
+      .toBuffer();
+    return { buffer: compressed, mimeType: 'image/webp', ext: '.webp' };
+  } catch (err) {
+    console.warn('Compression skipped:', err.message);
+    return { buffer, mimeType, ext: '' };
+  }
+}
+
 async function uploadBufferToR2(buffer, key, mimeType) {
+  const { buffer: finalBuffer, mimeType: finalMime, ext } = await compressImageBuffer(buffer, mimeType);
+  let finalKey = key;
+  if (ext) {
+    const oldExt = path.extname(key);
+    finalKey = oldExt ? `${key.slice(0, -oldExt.length)}${ext}` : `${key}${ext}`;
+  }
+
   await s3Client.send(
     new PutObjectCommand({
       Bucket: R2_BUCKET_NAME,
-      Key: key,
-      Body: buffer,
-      ContentType: mimeType,
+      Key: finalKey,
+      Body: finalBuffer,
+      ContentType: finalMime,
       CacheControl: 'public, max-age=31536000, immutable',
     })
   );
-  return `${cleanPublicUrl}/${key}`;
+  return `${cleanPublicUrl}/${finalKey}`;
 }
 
 async function main() {
