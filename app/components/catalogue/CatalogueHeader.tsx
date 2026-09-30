@@ -50,14 +50,18 @@ export function CatalogueHeader({ onOpenCart }: Props) {
             <p className="text-[15px] md:text-[17px] leading-relaxed text-[#4a4642]">
               soft muslin & cotton outfits, ages 0–10. Designed by mom, made with sustainable, kid-friendly fabrics.
             </p>
-            <p className="text-[13px] md:text-[15px] font-medium text-[#5a6d57] mt-1">
-              Made in Tamil Nadu • Designed by Mom • Experience Us in Bangalore
-            </p>
           </div>
           <div className="mt-5 flex items-center justify-center gap-3 flex-wrap">
-            {/* <span className="px-3 py-1.5 rounded-full bg-[#A8C3A5]/20 text-xs font-medium text-[#3d5a39]">GOTS Certified</span> */}
-            <span className="px-3 py-1.5 rounded-full bg-[#F7C8D0]/30 text-xs font-medium text-[#8a4b57]">Made in Tamil Nadu</span>
-            <span className="px-3 py-1.5 rounded-full bg-[#E6D9F0]/60 text-xs font-medium text-[#5d4a7a]">Experience Us in Bangalore</span>
+            <a
+              href="https://maps.app.goo.gl/rKDfJe6iQLeg5L966"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#E6D9F0]/60 hover:bg-[#E6D9F0] text-xs font-medium text-[#5d4a7a] transition-all hover:scale-105 shadow-xs cursor-pointer group"
+              title="View AttireNest store on Google Maps"
+            >
+              <span>📍 Store Location: Bangalore</span>
+              <span className="text-[10px] opacity-70 group-hover:translate-x-0.5 transition-transform">↗</span>
+            </a>
           </div>
         </div>
       </div>

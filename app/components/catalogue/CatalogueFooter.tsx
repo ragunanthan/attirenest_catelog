@@ -5,9 +5,18 @@ export function CatalogueFooter() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
             <div className="text-[24px] font-semibold" style={{ fontFamily: "'Fraunces',serif" }}>Attirenest</div>
-            <p className="text-sm text-[#6b6762] mt-1">Salem, Tamil Nadu • Small-batch organic kidswear</p>
+            <p className="text-sm text-[#6b6762] mt-1">Small-batch organic kidswear</p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
+            <a 
+              href="https://maps.app.goo.gl/rKDfJe6iQLeg5L966" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="px-4 py-2 rounded-full bg-[#5A7A56] text-white font-medium hover:bg-[#486345] transition flex items-center gap-1.5 shadow-xs"
+            >
+              <span>📍 Store: Bangalore</span>
+              <span className="text-xs">↗</span>
+            </a>
             <a href="https://instagram.com/attirenest.kids" target="_blank" rel="noopener noreferrer" className="px-4 py-2 rounded-full bg-[#2E2A27] text-white font-medium hover:opacity-90 transition">
               Instagram @attirenest.kids
             </a>

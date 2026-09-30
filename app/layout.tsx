@@ -17,7 +17,7 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   title: "Attirenest — 2026 Kids Catalogue | Comfort. Culture. Childhood.",
-  description: "Based in Tamil Nadu, Attirenest blends GOTS-certified organic cotton, gender-neutral designs, and Indian festive charm for ages 0–14.",
+  description: "Attirenest blends GOTS-certified organic cotton, gender-neutral designs, and Indian festive charm for ages 0–10.",
   icons: {
     icon: '/logo.jpg',
   },
