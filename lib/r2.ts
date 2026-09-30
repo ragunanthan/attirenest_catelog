@@ -4,7 +4,6 @@ import {
   DeleteObjectCommand,
   DeleteObjectsCommand,
 } from '@aws-sdk/client-s3';
-import sharp from 'sharp';
 import path from 'path';
 
 /**
@@ -110,6 +109,8 @@ export async function compressImage(
   }
 
   try {
+    const { default: sharp } = await import('sharp');
+
     const maxWidth = opts.maxWidth || 1920;
     const maxHeight = opts.maxHeight || 1920;
     const quality = opts.quality || 82;
