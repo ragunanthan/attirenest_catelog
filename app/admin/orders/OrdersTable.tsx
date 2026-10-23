@@ -19,9 +19,10 @@ import {
   AlertCircle,
   Ban,
   Check,
+  Trash2,
 } from 'lucide-react';
 import { OrderReceiptModal, ReceiptData } from '../components/OrderReceiptModal';
-import { updateOrderStatusAction } from '../actions';
+import { updateOrderStatusAction, deleteOrderAction } from '../actions';
 
 export interface OrderItem {
   _id: string;
@@ -68,6 +69,10 @@ export function OrdersTable({ orders }: OrdersTableProps) {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isUpdatingStatus, startStatusTransition] = useTransition();
 
+  const [orderToDelete, setOrderToDelete] = useState<OrderItem | null>(null);
+  const [restoreStockOnDelete, setRestoreStockOnDelete] = useState<boolean>(true);
+  const [isDeleting, startDeleteTransition] = useTransition();
+
   const toggleExpand = (id: string) => {
     setExpandedOrders((prev) => ({
       ...prev,
@@ -87,6 +92,21 @@ export function OrdersTable({ orders }: OrdersTableProps) {
       } else if (res.success) {
         setStatusMessage(res.success);
         setTimeout(() => setStatusMessage(null), 4000);
+      }
+    });
+  };
+
+  const handleConfirmDelete = () => {
+    if (!orderToDelete) return;
+
+    startDeleteTransition(async () => {
+      const res = await deleteOrderAction(orderToDelete.orderId, restoreStockOnDelete);
+      if (res.error) {
+        setStatusMessage(`Error: ${res.error}`);
+      } else if (res.success) {
+        setStatusMessage(res.success);
+        setTimeout(() => setStatusMessage(null), 4000);
+        setOrderToDelete(null);
       }
     });
   };
@@ -490,6 +510,17 @@ export function OrdersTable({ orders }: OrdersTableProps) {
                     </button>
 
                     <button
+                      onClick={() => {
+                        setOrderToDelete(order);
+                        setRestoreStockOnDelete(order.status === 'paid');
+                      }}
+                      className="p-2 rounded-xl bg-[#FAF7F2] hover:bg-red-50 text-[#7A7367] hover:text-red-600 transition cursor-pointer"
+                      title="Delete Order"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+
+                    <button
                       onClick={() => toggleExpand(order._id)}
                       className="px-3.5 py-2 rounded-xl bg-[#FAF7F2] hover:bg-[#E8E2D9] text-xs font-semibold text-[#4A443B] flex items-center gap-1 transition cursor-pointer"
                     >
@@ -640,6 +671,17 @@ export function OrdersTable({ orders }: OrdersTableProps) {
                         >
                           <Printer size={13} /> Print Bill
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOrderToDelete(order);
+                            setRestoreStockOnDelete(order.status === 'paid');
+                          }}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-semibold transition cursor-pointer"
+                          title="Delete Order Permanently"
+                        >
+                          <Trash2 size={13} /> Delete
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -656,6 +698,90 @@ export function OrdersTable({ orders }: OrdersTableProps) {
           receipt={receiptToPrint}
           onClose={() => setReceiptToPrint(null)}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {orderToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-red-100 space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center shrink-0">
+                <Trash2 size={24} />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-base text-[#2E2A27]">
+                  Delete Order Permanently?
+                </h3>
+                <p className="text-xs text-[#7A7367]">
+                  Order <strong>{orderToDelete.orderNumber}</strong>
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-[#FAF7F2] border border-[#E8E2D9] text-xs space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-[#8C8479]">Customer:</span>
+                <span className="font-bold text-[#2E2A27]">
+                  {orderToDelete.shippingAddress?.fullName || 'Walk-in Customer'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#8C8479]">Amount:</span>
+                <span className="font-extrabold text-[#2E2A27]">
+                  ₹{orderToDelete.amount.toLocaleString('en-IN')}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#8C8479]">Status:</span>
+                <span className="font-bold capitalize">{orderToDelete.status}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#8C8479]">Items:</span>
+                <span className="font-medium text-[#4A443B]">
+                  {orderToDelete.items?.length || 0} item(s)
+                </span>
+              </div>
+            </div>
+
+            {/* Restock checkbox (if order was paid) */}
+            {orderToDelete.status === 'paid' && (
+              <label className="flex items-start gap-2.5 p-3 rounded-xl bg-emerald-50/70 border border-emerald-200 text-xs text-emerald-900 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={restoreStockOnDelete}
+                  onChange={(e) => setRestoreStockOnDelete(e.target.checked)}
+                  className="mt-0.5 rounded text-[#5A7A56] focus:ring-[#5A7A56]"
+                />
+                <span>
+                  <strong>Restore inventory stock</strong> for the items in this order back to the catalog.
+                </span>
+              </label>
+            )}
+
+            <p className="text-[11px] text-red-600 bg-red-50 p-2.5 rounded-xl border border-red-200">
+              ⚠️ This action cannot be undone. The order record will be permanently deleted from the database.
+            </p>
+
+            <div className="flex items-center gap-2.5 pt-2">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setOrderToDelete(null)}
+                className="flex-1 py-2.5 rounded-2xl bg-[#FAF7F2] hover:bg-[#E8E2D9] text-xs font-bold text-[#5C564E] transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleConfirmDelete}
+                className="flex-1 py-2.5 rounded-2xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

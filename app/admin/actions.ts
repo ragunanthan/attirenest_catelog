@@ -804,3 +804,56 @@ export async function updateOrderStatusAction(
   }
 }
 
+export async function deleteOrderAction(
+  orderId: string,
+  restoreStock: boolean = true
+): Promise<ActionResponse> {
+  const session = await getSession();
+  if (!session) return { error: 'Unauthorized: Please log in again.' };
+
+  if (!orderId) return { error: 'Order ID is required.' };
+
+  try {
+    await dbConnect();
+
+    const order = await Order.findOne({ orderId });
+    if (!order) {
+      return { error: `Order with ID "${orderId}" not found.` };
+    }
+
+    // If order was marked as paid and restoreStock is true, return the stock to inventory
+    if (restoreStock && order.status === 'paid' && order.items && order.items.length > 0) {
+      for (const item of order.items) {
+        await Product.updateOne(
+          {
+            id: item.productId,
+            'variants.year': item.year,
+          },
+          {
+            $inc: { 'variants.$.stock': item.qty },
+          }
+        );
+      }
+    }
+
+    // Permanently remove the order document
+    await Order.deleteOne({ orderId });
+
+    revalidatePath('/');
+    revalidatePath('/admin/orders');
+    revalidatePath('/admin/dashboard');
+    revalidatePath('/admin/products');
+
+    return {
+      success: `Order ${order.orderNumber} deleted permanently${
+        restoreStock && order.status === 'paid' ? ' (inventory stock restored)' : ''
+      }.`,
+    };
+  } catch (error: unknown) {
+    console.error('Error deleting order:', error);
+    const msg = error instanceof Error ? error.message : 'Unknown error occurred';
+    return { error: `Failed to delete order: ${msg}` };
+  }
+}
+
+
