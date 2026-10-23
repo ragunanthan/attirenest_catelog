@@ -17,6 +17,7 @@ import {
   ChevronRight,
   Edit,
   FolderKanban,
+  Store,
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -39,6 +40,7 @@ interface OrderDoc {
   orderNumber: string;
   amount: number;
   status: 'pending' | 'paid' | 'failed' | 'cancelled';
+  orderType?: 'online' | 'in_store';
   createdAt: string | Date;
   shippingAddress?: {
     fullName?: string;
@@ -105,12 +107,20 @@ export default async function AdminDashboardPage() {
       title="Executive Dashboard"
       subtitle="Real-time performance metrics, catalog stock health, and recent sales."
       actions={
-        <Link
-          href="/admin/products/new"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#5A7A56] hover:bg-[#486345] text-white text-xs font-bold shadow-md shadow-[#5A7A56]/20 transition"
-        >
-          <Plus size={16} /> Add Product
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/orders/new"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-white border border-[#DCD6CC] hover:bg-[#FAF7F2] text-[#2E2A27] text-xs font-bold transition shadow-xs"
+          >
+            <Store size={15} className="text-[#5A7A56]" /> + In-Store Order
+          </Link>
+          <Link
+            href="/admin/products/new"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-[#5A7A56] hover:bg-[#486345] text-white text-xs font-bold shadow-md shadow-[#5A7A56]/20 transition"
+          >
+            <Plus size={15} /> Add Product
+          </Link>
+        </div>
       }
     >
       <div className="space-y-8">
@@ -322,6 +332,11 @@ export default async function AdminDashboardPage() {
                     <div className="min-w-0">
                       <div className="font-bold text-[#2E2A27] flex items-center gap-2">
                         <span>{order.orderNumber}</span>
+                        {order.orderType === 'in_store' && (
+                          <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-800 flex items-center gap-0.5">
+                            <Store size={9} /> Store
+                          </span>
+                        )}
                         <span
                           className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${
                             order.status === 'paid'

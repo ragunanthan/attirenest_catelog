@@ -4,6 +4,8 @@ import dbConnect from '@/lib/mongodb';
 import Order from '@/lib/models/Order';
 import { AdminShell } from '../components/AdminShell';
 import { OrdersTable, OrderItem } from './OrdersTable';
+import Link from 'next/link';
+import { Plus } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +27,8 @@ interface RawOrderDoc {
   amount: number;
   currency?: string;
   status: 'pending' | 'paid' | 'failed' | 'cancelled';
+  orderType?: 'online' | 'in_store';
+  notes?: string;
   items?: RawOrderItem[];
   shippingAddress?: {
     fullName?: string;
@@ -58,6 +62,8 @@ export default async function AdminOrdersPage() {
     amount: o.amount,
     currency: o.currency || 'INR',
     status: o.status,
+    orderType: o.orderType || 'online',
+    notes: o.notes || '',
     items: (o.items || []).map((i) => ({
       productId: i.productId,
       name: i.name,
@@ -81,7 +87,15 @@ export default async function AdminOrdersPage() {
   return (
     <AdminShell
       title="Sales Orders"
-      subtitle="Track incoming payments, manage delivery addresses, and contact buyers."
+      subtitle="Track incoming payments, record in-store counter purchases, and manage delivery orders."
+      actions={
+        <Link
+          href="/admin/orders/new"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#5A7A56] hover:bg-[#486345] text-white text-xs font-bold shadow-md shadow-[#5A7A56]/20 transition cursor-pointer"
+        >
+          <Plus size={16} /> Add In-Store Order
+        </Link>
+      }
     >
       <OrdersTable orders={orders} />
     </AdminShell>

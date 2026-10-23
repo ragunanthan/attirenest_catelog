@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   Sparkles,
+  Store,
 } from 'lucide-react';
 import { logoutAction } from '../actions';
 
@@ -50,11 +51,23 @@ const navItems = [
     href: '/admin/orders',
     icon: ShoppingBag,
   },
+  {
+    name: 'Add Store Order',
+    href: '/admin/orders/new',
+    icon: Store,
+  },
 ];
 
 export function AdminShell({ children, title, subtitle, actions }: AdminShellProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const isItemActive = (href: string) => {
+    if (href === '/admin/dashboard') return pathname === '/admin/dashboard';
+    if (href === '/admin/products') return pathname === '/admin/products';
+    if (href === '/admin/orders') return pathname === '/admin/orders';
+    return pathname === href || (pathname?.startsWith(href) ?? false);
+  };
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] text-[#2E2A27] flex flex-col md:flex-row">
@@ -95,7 +108,7 @@ export function AdminShell({ children, title, subtitle, actions }: AdminShellPro
           <div className="bg-white border-b border-[#E8E2D9] p-5 shadow-2xl space-y-2">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href || (item.href !== '/admin/dashboard' && pathname?.startsWith(item.href));
+              const isActive = isItemActive(item.href);
               return (
                 <Link
                   key={item.href}
@@ -153,9 +166,7 @@ export function AdminShell({ children, title, subtitle, actions }: AdminShellPro
           </div>
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive =
-              pathname === item.href ||
-              (item.href !== '/admin/dashboard' && pathname?.startsWith(item.href));
+            const isActive = isItemActive(item.href);
 
             return (
               <Link

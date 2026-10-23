@@ -42,7 +42,7 @@ const ProductSchema = new mongoose.Schema<IProduct>({
 
 // Force delete the model from cache to ensure the new schema is picked up
 if (mongoose.models.Product) {
-  delete (mongoose.models as any).Product;
+  delete (mongoose.models as Record<string, unknown>).Product;
 }
 
 export default mongoose.model<IProduct>('Product', ProductSchema);

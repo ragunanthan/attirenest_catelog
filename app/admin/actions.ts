@@ -5,6 +5,7 @@ import { createSession, getSession, deleteSession } from '@/lib/session';
 import dbConnect from '@/lib/mongodb';
 import Product from '@/lib/models/Product';
 import Category from '@/lib/models/Category';
+import Order from '@/lib/models/Order';
 import { revalidatePath } from 'next/cache';
 import { uploadToR2, safeDeleteStorageImage } from '@/lib/r2';
 
@@ -552,3 +553,254 @@ export async function deleteCategoryAction(
     return { error: `Failed to delete category: ${msg}` };
   }
 }
+
+// ----------------------------------------------------
+// ORDER ACTIONS (IN-STORE / POS & STATUS UPDATES)
+// ----------------------------------------------------
+
+export interface InStoreOrderItemInput {
+  productId: number;
+  name: string;
+  year: string;
+  price: number;
+  qty: number;
+}
+
+export interface InStoreOrderInput {
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  fulfillmentType: 'takeaway' | 'delivery';
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  items: InStoreOrderItemInput[];
+  paymentMethod: 'cash' | 'upi' | 'card' | 'other';
+  paymentStatus: 'paid' | 'pending';
+  paymentId?: string;
+  notes?: string;
+  sendEmailNotification?: boolean;
+}
+
+export interface CreateInStoreOrderResponse {
+  success?: boolean;
+  error?: string;
+  orderId?: string;
+  orderNumber?: string;
+}
+
+export async function createInStoreOrderAction(
+  payload: InStoreOrderInput
+): Promise<CreateInStoreOrderResponse> {
+  const session = await getSession();
+  if (!session) {
+    return { error: 'Unauthorized: Please log in again.' };
+  }
+
+  if (!payload.items || payload.items.length === 0) {
+    return { error: 'Please add at least one product to the order.' };
+  }
+
+  // Validate item quantities and prices
+  for (const item of payload.items) {
+    if (!item.productId || typeof item.productId !== 'number') {
+      return { error: 'Invalid product selected.' };
+    }
+    if (!item.year || typeof item.year !== 'string') {
+      return { error: `Size/variant missing for item "${item.name}".` };
+    }
+    if (!item.qty || item.qty < 1) {
+      return { error: `Quantity for "${item.name}" must be at least 1.` };
+    }
+    if (typeof item.price !== 'number' || item.price < 0) {
+      return { error: `Invalid price for item "${item.name}".` };
+    }
+  }
+
+  try {
+    await dbConnect();
+
+    // 1. Check stock availability for all items
+    for (const item of payload.items) {
+      const product = await Product.findOne({ id: item.productId });
+      if (!product) {
+        return { error: `Product "${item.name}" (ID #${item.productId}) not found in catalog.` };
+      }
+
+      const variant = product.variants?.find((v: { year: string; price: number; stock: number }) => v.year === item.year);
+      if (!variant) {
+        return { error: `Size variant "${item.year}" for "${product.name}" not found.` };
+      }
+
+      if (variant.stock < item.qty) {
+        return {
+          error: `Insufficient stock for "${product.name}" (${item.year}). Available: ${variant.stock}, Requested: ${item.qty}.`,
+        };
+      }
+    }
+
+    // 2. Generate unique human-readable order number & ID
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const orderNumber = `AN-STR-${dateStr}-${randomStr}`;
+    const orderId = `store_${Date.now()}_${randomStr.toLowerCase()}`;
+
+    // 3. Atomically decrement stock for each item
+    for (const item of payload.items) {
+      await Product.updateOne(
+        {
+          id: item.productId,
+          'variants.year': item.year,
+        },
+        {
+          $inc: { 'variants.$.stock': -item.qty },
+        }
+      );
+    }
+
+    // 4. Calculate total amount
+    const totalAmount = payload.items.reduce((sum, item) => sum + item.price * item.qty, 0);
+
+    // 5. Structure address & customer records
+    const isTakeaway = payload.fulfillmentType === 'takeaway';
+    const customerName = payload.customerName?.trim() || 'Walk-in Customer';
+    const customerPhone = payload.customerPhone?.trim() || '';
+    const customerEmail = payload.customerEmail?.trim() || '';
+
+    const shippingAddress = {
+      fullName: customerName,
+      phone: customerPhone,
+      email: customerEmail,
+      addressLine1: isTakeaway
+        ? (payload.addressLine1?.trim() || 'In-Store Counter Pickup')
+        : (payload.addressLine1?.trim() || 'In-Store Order Delivery'),
+      addressLine2: payload.addressLine2?.trim() || '',
+      city: isTakeaway ? (payload.city?.trim() || 'Bangalore (In-Store)') : (payload.city?.trim() || 'Bangalore'),
+      state: isTakeaway ? (payload.state?.trim() || 'Karnataka') : (payload.state?.trim() || 'Karnataka'),
+      pincode: payload.pincode?.trim() || '',
+    };
+
+    const paymentId =
+      payload.paymentId?.trim() ||
+      (payload.paymentMethod === 'cash'
+        ? 'CASH'
+        : `STORE-${payload.paymentMethod.toUpperCase()}`);
+
+    // 6. Create Order record in DB
+    const newOrder = await Order.create({
+      orderId,
+      orderNumber,
+      paymentId,
+      paymentMethod: payload.paymentMethod,
+      amount: totalAmount,
+      currency: 'INR',
+      status: payload.paymentStatus || 'paid',
+      orderType: 'in_store',
+      notes: payload.notes?.trim() || '',
+      items: payload.items.map((i) => ({
+        productId: i.productId,
+        name: i.name,
+        year: i.year,
+        price: i.price,
+        qty: i.qty,
+      })),
+      shippingAddress,
+      customerInfo: {
+        name: customerName,
+        email: customerEmail,
+        contact: customerPhone,
+      },
+    });
+
+    // 7. Send Customer Confirmation Email asynchronously if requested and email provided
+    if (payload.sendEmailNotification && customerEmail) {
+      try {
+        const { sendCustomerConfirmation } = await import('@/lib/email');
+        await sendCustomerConfirmation(newOrder);
+      } catch (emailError) {
+        console.error('[In-Store Order] Failed to send email confirmation:', emailError);
+      }
+    }
+
+    // 8. Revalidate cached paths
+    revalidatePath('/');
+    revalidatePath('/admin/orders');
+    revalidatePath('/admin/dashboard');
+    revalidatePath('/admin/products');
+
+    return {
+      success: true,
+      orderId,
+      orderNumber,
+    };
+  } catch (error: unknown) {
+    console.error('Error creating in-store order:', error);
+    const msg = error instanceof Error ? error.message : 'Unknown error occurred';
+    return { error: `Failed to create in-store order: ${msg}` };
+  }
+}
+
+export async function updateOrderStatusAction(
+  orderId: string,
+  newStatus: 'paid' | 'pending' | 'cancelled'
+): Promise<ActionResponse> {
+  const session = await getSession();
+  if (!session) return { error: 'Unauthorized' };
+
+  if (!orderId) return { error: 'Order ID is required.' };
+
+  try {
+    await dbConnect();
+
+    const order = await Order.findOne({ orderId });
+    if (!order) {
+      return { error: `Order with ID "${orderId}" not found.` };
+    }
+
+    const previousStatus = order.status;
+
+    // If cancelling a paid order, restock inventory items
+    if (newStatus === 'cancelled' && previousStatus === 'paid') {
+      for (const item of order.items) {
+        await Product.updateOne(
+          {
+            id: item.productId,
+            'variants.year': item.year,
+          },
+          {
+            $inc: { 'variants.$.stock': item.qty },
+          }
+        );
+      }
+    } else if (previousStatus === 'cancelled' && newStatus === 'paid') {
+      // If un-cancelling back to paid, deduct stock again
+      for (const item of order.items) {
+        await Product.updateOne(
+          {
+            id: item.productId,
+            'variants.year': item.year,
+          },
+          {
+            $inc: { 'variants.$.stock': -item.qty },
+          }
+        );
+      }
+    }
+
+    order.status = newStatus;
+    await order.save();
+
+    revalidatePath('/admin/orders');
+    revalidatePath('/admin/dashboard');
+    revalidatePath('/admin/products');
+
+    return { success: `Order ${order.orderNumber} status updated to ${newStatus}.` };
+  } catch (error: unknown) {
+    console.error('Error updating order status:', error);
+    const msg = error instanceof Error ? error.message : 'Unknown error occurred';
+    return { error: `Failed to update order status: ${msg}` };
+  }
+}
+

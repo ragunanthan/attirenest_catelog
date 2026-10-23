@@ -28,6 +28,8 @@ export interface IOrder extends mongoose.Document {
   amount: number;
   currency: string;
   status: 'pending' | 'paid' | 'failed' | 'cancelled';
+  orderType?: 'online' | 'in_store';
+  notes?: string;
   items: IOrderItem[];
   shippingAddress: IShippingAddress;
   customerInfo?: {
@@ -48,6 +50,8 @@ const OrderSchema = new mongoose.Schema<IOrder>({
   amount: { type: Number, required: true },
   currency: { type: String, required: true, default: 'INR' },
   status: { type: String, enum: ['pending', 'paid', 'failed', 'cancelled'], default: 'pending' },
+  orderType: { type: String, enum: ['online', 'in_store'], default: 'online' },
+  notes: { type: String },
   items: [
     {
       productId: { type: Number, required: true },
@@ -74,4 +78,9 @@ const OrderSchema = new mongoose.Schema<IOrder>({
   }
 }, { timestamps: true });
 
-export default mongoose.models.Order || mongoose.model<IOrder>('Order', OrderSchema);
+// Force delete the model from cache to ensure the updated schema is picked up
+if (mongoose.models.Order) {
+  delete (mongoose.models as Record<string, unknown>).Order;
+}
+
+export default mongoose.model<IOrder>('Order', OrderSchema);
